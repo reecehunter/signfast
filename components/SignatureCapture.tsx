@@ -83,7 +83,7 @@ export function SignatureCapture({ onSignatureComplete, onCancel }: SignatureCap
               }}
               onBegin={handleBegin}
               onEnd={handleEnd}
-              backgroundColor={null}
+              backgroundColor={undefined}
               penColor='black'
               minWidth={2}
               maxWidth={3}

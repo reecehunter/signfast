@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Check, X, Plus } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 
 // Note: react-pdf styles are imported in globals.css to avoid module resolution issues
 
@@ -38,7 +38,6 @@ export function ClientPDFSelector({
   const [pageHeight, setPageHeight] = useState<number>(0)
   const [scale, setScale] = useState<number>(1)
   const [signatureAreas, setSignatureAreas] = useState<SignatureArea[]>([])
-  const [isAdding, setIsAdding] = useState(false)
   const [isSelecting, setIsSelecting] = useState(false)
   const [selectionStart, setSelectionStart] = useState({ x: 0, y: 0 })
   const [selectionEnd, setSelectionEnd] = useState({ x: 0, y: 0 })
@@ -48,9 +47,23 @@ export function ClientPDFSelector({
   const [error, setError] = useState<string>('')
 
   // Dynamic imports for client-side only
-  const [Document, setDocument] = useState<any>(null)
-  const [Page, setPage] = useState<any>(null)
-  const [Rnd, setRnd] = useState<any>(null)
+  const [Document, setDocument] = useState<React.ComponentType<{
+    file: string
+    onLoadSuccess: (data: { numPages: number }) => void
+    onLoadError: (error: Error) => void
+    loading: React.ReactNode
+    error: React.ReactNode
+    children: React.ReactNode
+  }> | null>(null)
+  const [Page, setPage] = useState<React.ComponentType<{
+    pageNumber: number
+    scale: number
+    onLoadSuccess: (page: {
+      getViewport: (options: { scale: number }) => { width: number; height: number }
+    }) => void
+    className?: string
+  }> | null>(null)
+  const [Rnd, setRnd] = useState<React.ComponentType<Record<string, unknown>> | null>(null)
 
   useEffect(() => {
     setIsClient(true)
@@ -68,7 +81,7 @@ export function ClientPDFSelector({
 
         // Load react-rnd
         const { Rnd: RndComp } = await import('react-rnd')
-        setRnd(() => RndComp)
+        setRnd(RndComp as unknown as React.ComponentType<Record<string, unknown>>)
       } catch (err) {
         console.error('Error loading PDF components:', err)
         setError('Failed to load PDF viewer components. Please try refreshing the page.')
@@ -89,13 +102,19 @@ export function ClientPDFSelector({
     setNumPages(numPages)
   }, [])
 
-  const onPageLoadSuccess = useCallback((page: any) => {
-    const { width, height } = page.getViewport({ scale: 1 })
-    setPageWidth(width)
-    setPageHeight(height)
-  }, [])
+  const onPageLoadSuccess = useCallback(
+    (page: { getViewport: (options: { scale: number }) => { width: number; height: number } }) => {
+      const { width, height } = page.getViewport({ scale: 1 })
+      setPageWidth(width)
+      setPageHeight(height)
+    },
+    []
+  )
 
-  const handleSignatureAreaChange = (index: number, data: any) => {
+  const handleSignatureAreaChange = (
+    index: number,
+    data: { x: number; y: number; width: number; height: number }
+  ) => {
     setSignatureAreas((prev) => {
       const newAreas = [...prev]
       newAreas[index] = {
@@ -346,7 +365,7 @@ export function ClientPDFSelector({
               <Document
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={(error: any) => setError(`Failed to load PDF: ${error.message}`)}
+                onLoadError={(error: Error) => setError(`Failed to load PDF: ${error.message}`)}
                 loading={<div className='text-center p-8'>Loading PDF...</div>}
                 error={<div className='text-center p-8 text-red-600'>Failed to load PDF</div>}
               >
@@ -374,7 +393,7 @@ export function ClientPDFSelector({
               {/* Signature Areas */}
               {signatureAreas
                 .filter((area) => area.pageNumber === pageNumber)
-                .map((area, filteredIndex) => {
+                .map((area) => {
                   // Find the actual index in the full array
                   const actualIndex = signatureAreas.findIndex((a) => a === area)
                   return (

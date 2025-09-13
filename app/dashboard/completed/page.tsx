@@ -80,7 +80,7 @@ export default function CompletedPage() {
   return (
     <div className='min-h-screen bg-gray-50 flex'>
       <Sidebar
-        userName={session.user?.name}
+        userName={session.user?.name || undefined}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />

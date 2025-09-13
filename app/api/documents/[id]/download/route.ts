@@ -26,13 +26,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     try {
       const fileBuffer = await readFile(filePath)
 
-      return new NextResponse(fileBuffer, {
+      return new NextResponse(new Uint8Array(fileBuffer), {
         headers: {
           'Content-Type': document.mimeType,
           'Content-Disposition': `attachment; filename="${document.fileName}"`,
         },
       })
-    } catch (fileError) {
+    } catch {
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
   } catch (error) {

@@ -41,8 +41,6 @@ export function InteractivePDFSigner({
   const [isClient, setIsClient] = useState(false)
   const [numPages, setNumPages] = useState<number>(0)
   const [pageNumber, setPageNumber] = useState<number>(1)
-  const [pageWidth, setPageWidth] = useState<number>(0)
-  const [pageHeight, setPageHeight] = useState<number>(0)
   const [scale, setScale] = useState<number>(1)
   const [error, setError] = useState<string>('')
   const [showSignatureCapture, setShowSignatureCapture] = useState(false)
@@ -53,8 +51,22 @@ export function InteractivePDFSigner({
   const [capturedSignature, setCapturedSignature] = useState<string>('')
 
   // Dynamic imports for client-side only
-  const [Document, setDocument] = useState<any>(null)
-  const [Page, setPage] = useState<any>(null)
+  const [Document, setDocument] = useState<React.ComponentType<{
+    file: string
+    onLoadSuccess: (data: { numPages: number }) => void
+    onLoadError: (error: Error) => void
+    loading: React.ReactNode
+    error: React.ReactNode
+    children: React.ReactNode
+  }> | null>(null)
+  const [Page, setPage] = useState<React.ComponentType<{
+    pageNumber: number
+    scale: number
+    onLoadSuccess: (page: {
+      getViewport: (options: { scale: number }) => { width: number; height: number }
+    }) => void
+    className?: string
+  }> | null>(null)
 
   useEffect(() => {
     setIsClient(true)
@@ -82,13 +94,11 @@ export function InteractivePDFSigner({
     setNumPages(numPages)
   }, [])
 
-  const onPageLoadSuccess = useCallback((page: any) => {
-    const { width, height } = page.getViewport({ scale: 1 })
-    setPageWidth(width)
-    setPageHeight(height)
+  const onPageLoadSuccess = useCallback(() => {
+    // Page loaded successfully - no additional action needed
   }, [])
 
-  const convertToScreenCoordinates = (pdfCoord: number, isX: boolean) => {
+  const convertToScreenCoordinates = (pdfCoord: number) => {
     return pdfCoord * scale
   }
 
@@ -285,7 +295,7 @@ export function InteractivePDFSigner({
               <Document
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={(error: any) => setError(`Failed to load PDF: ${error.message}`)}
+                onLoadError={(error: Error) => setError(`Failed to load PDF: ${error.message}`)}
                 loading={<div className='text-center p-8'>Loading PDF...</div>}
                 error={<div className='text-center p-8 text-red-600'>Failed to load PDF</div>}
               >
@@ -309,10 +319,10 @@ export function InteractivePDFSigner({
                     isCompleted,
                     'coordinates:',
                     {
-                      x: convertToScreenCoordinates(area.x, true),
-                      y: convertToScreenCoordinates(area.y, false),
-                      width: convertToScreenCoordinates(area.width, true),
-                      height: convertToScreenCoordinates(area.height, false),
+                      x: convertToScreenCoordinates(area.x),
+                      y: convertToScreenCoordinates(area.y),
+                      width: convertToScreenCoordinates(area.width),
+                      height: convertToScreenCoordinates(area.height),
                     }
                   )
                   return (
@@ -323,10 +333,10 @@ export function InteractivePDFSigner({
                         isCompleted
                       )}`}
                       style={{
-                        left: convertToScreenCoordinates(area.x, true),
-                        top: convertToScreenCoordinates(area.y, false),
-                        width: convertToScreenCoordinates(area.width, true),
-                        height: convertToScreenCoordinates(area.height, false),
+                        left: convertToScreenCoordinates(area.x),
+                        top: convertToScreenCoordinates(area.y),
+                        width: convertToScreenCoordinates(area.width),
+                        height: convertToScreenCoordinates(area.height),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

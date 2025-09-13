@@ -8,13 +8,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const filePath = join(process.cwd(), 'uploads', 'signed', path)
     const fileBuffer = await readFile(filePath)
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="signed-${path}"`,
       },
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'File not found' }, { status: 404 })
   }
 }

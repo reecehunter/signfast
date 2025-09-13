@@ -28,7 +28,7 @@ export async function GET(
               },
             },
             signatureAreas: true,
-          } as any,
+          },
         },
       },
     })
@@ -39,7 +39,7 @@ export async function GET(
 
     // Return document data with signature status for this specific token
     return NextResponse.json({
-      ...(signature as any).document,
+      ...signature.document,
       currentSignature: {
         id: signature.id,
         status: signature.status,
@@ -78,7 +78,7 @@ export async function POST(
             owner: true,
             signatures: true,
             signatureAreas: true,
-          } as any,
+          },
         },
       },
     })
@@ -95,11 +95,11 @@ export async function POST(
     const originalFilePath = join(
       process.cwd(),
       'uploads',
-      (signature as any).document.fileUrl.replace('/uploads/', '')
+      signature.document.fileUrl.replace('/uploads/', '')
     )
 
     // Get signature areas
-    const signatureAreas = (signature as any).document.signatureAreas
+    const signatureAreas = signature.document.signatureAreas
 
     const signedDocumentUrl = await createSignedDocument(
       originalFilePath,
@@ -139,7 +139,7 @@ export async function POST(
         signerName,
         signatureData: JSON.stringify(areaData), // Store area data as JSON
         signedDocumentUrl: signedDocumentUrl,
-      } as any,
+      },
     })
 
     // Check if all signatures are complete
@@ -157,13 +157,13 @@ export async function POST(
       })
 
       // Send completion emails to all parties
-      const document = (signature as any).document
+      const document = signature.document
       const completionPromises = []
 
       // Get the signed document URL from the most recent signature
-      const signedSignature = allSignatures.find((sig) => (sig as any).signedDocumentUrl)
+      const signedSignature = allSignatures.find((sig) => sig.signedDocumentUrl)
       let signedDocumentUrl =
-        (signedSignature as any)?.signedDocumentUrl ||
+        signedSignature?.signedDocumentUrl ||
         `${process.env.NEXTAUTH_URL}/api/documents/${document.id}/download`
 
       // Convert relative path to full URL if needed

@@ -27,12 +27,12 @@ export async function GET(
         break
     }
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': contentType,
       },
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'File not found' }, { status: 404 })
   }
 }

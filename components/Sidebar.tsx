@@ -36,7 +36,7 @@ const navigationItems = [
   },
 ]
 
-export function Sidebar({ userName, isCollapsed = false, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
 

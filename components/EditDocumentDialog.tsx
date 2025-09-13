@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { ClientPDFSelector } from '@/components/ClientPDFSelector'
 
@@ -79,7 +79,7 @@ export function EditDocumentDialog({
         const data = await response.json()
         setError(data.error || 'Failed to update signature areas')
       }
-    } catch (error) {
+    } catch {
       setError('Failed to update signature areas')
     }
   }
@@ -99,7 +99,7 @@ export function EditDocumentDialog({
         <div className='mb-4'>
           <h2 className='text-lg font-semibold'>Edit Signature Areas</h2>
           <p className='text-sm text-gray-600 mt-1'>
-            Select and position signature areas for "{document.title}"
+            Select and position signature areas for &quot;{document.title}&quot;
           </p>
           {error && (
             <div className='mt-2 p-3 bg-red-50 border border-red-200 rounded-md'>

@@ -74,7 +74,7 @@ export function SendDocumentDialog({
         const data = await response.json()
         setError(data.error || 'Failed to send document')
       }
-    } catch (error) {
+    } catch {
       setError('Failed to send document. Please try again.')
     } finally {
       setIsSending(false)
@@ -96,7 +96,7 @@ export function SendDocumentDialog({
         <DialogHeader>
           <DialogTitle>Send Document for Signature</DialogTitle>
           <DialogDescription>
-            Send "{document?.title}" to someone for electronic signature
+            Send &quot;{document?.title}&quot; to someone for electronic signature
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className='space-y-4'>

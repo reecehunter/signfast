@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Upload, FileText, MapPin } from 'lucide-react'
+import { Upload, FileText } from 'lucide-react'
 import { ClientPDFSelector } from './ClientPDFSelector'
 
 interface DocumentUploadDialogProps {
@@ -30,17 +30,6 @@ export function DocumentUploadDialog({
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState('')
   const [showSignatureAreaSelector, setShowSignatureAreaSelector] = useState(false)
-  const [signatureAreas, setSignatureAreas] = useState<
-    {
-      x: number
-      y: number
-      width: number
-      height: number
-      pageNumber?: number
-      type: 'signature' | 'name' | 'date' | 'business'
-      label?: string
-    }[]
-  >([])
   const [uploadedFileUrl, setUploadedFileUrl] = useState('')
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +67,7 @@ export function DocumentUploadDialog({
         const data = await response.json()
         setError(data.error || 'Upload failed')
       }
-    } catch (error) {
+    } catch {
       setError('Upload failed. Please try again.')
     } finally {
       setIsUploading(false)
@@ -114,13 +103,12 @@ export function DocumentUploadDialog({
         onOpenChange(false)
         setFile(null)
         setTitle('')
-        setSignatureAreas([])
         setUploadedFileUrl('')
         setShowSignatureAreaSelector(false)
       } else {
         setError('Failed to save signature areas')
       }
-    } catch (error) {
+    } catch {
       setError('Failed to save signature areas')
     }
   }
@@ -135,7 +123,6 @@ export function DocumentUploadDialog({
       onOpenChange(false)
       setFile(null)
       setTitle('')
-      setSignatureAreas([])
       setError('')
     }
   }
