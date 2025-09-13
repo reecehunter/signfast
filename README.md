@@ -1,36 +1,225 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SignFast
 
-## Getting Started
+A simple, minimal electronic signature solution built with Next.js and shadcn/ui.
 
-First, run the development server:
+## Features
+
+- ✅ User registration and authentication
+- ✅ Document upload (PDF, DOC, DOCX)
+- ✅ Send documents for electronic signature via email
+- ✅ Public signing page for recipients
+- ✅ Email notifications for document sharing and completion
+- ✅ Dashboard to track document status and signatures
+- ✅ Secure token-based signing links
+- ✅ Local file storage (easily configurable for cloud storage)
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **UI**: shadcn/ui, Tailwind CSS
+- **Authentication**: NextAuth.js
+- **Database**: SQLite with Prisma ORM
+- **Email**: Nodemailer with SMTP
+- **File Storage**: Local filesystem (configurable for S3)
+
+## Quick Start
+
+### 1. Clone and Install Dependencies
+
+```bash
+git clone <your-repo-url>
+cd docusign-alternative
+npm install
+```
+
+### 2. Environment Setup
+
+Create a `.env` file in the root directory:
+
+```env
+# Database
+DATABASE_URL="file:./dev.db"
+
+# NextAuth.js
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key-here"
+
+# Email Configuration (Gmail example)
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT="587"
+EMAIL_USER="your-email@gmail.com"
+EMAIL_PASS="your-app-password"
+
+# Optional: AWS S3 Configuration
+AWS_ACCESS_KEY_ID="your-aws-access-key"
+AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
+AWS_REGION="us-east-1"
+AWS_S3_BUCKET="your-bucket-name"
+```
+
+### 3. Database Setup
+
+```bash
+# Generate Prisma client
+npx prisma generate
+
+# Create and migrate database
+npx prisma db push
+```
+
+### 4. Run the Application
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000` to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. User Registration
 
-## Learn More
+- Visit the homepage and click "Get Started Free"
+- Create an account with your email and password
+- Sign in to access your dashboard
 
-To learn more about Next.js, take a look at the following resources:
+### 2. Upload Documents
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Click "Upload Document" in your dashboard
+- Select a PDF, DOC, or DOCX file
+- Add a document title
+- The document will appear in your dashboard
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. Send for Signature
 
-## Deploy on Vercel
+- Click "Send" next to any document
+- Enter the signer's email address
+- Optionally add the signer's name
+- The signer will receive an email with a secure signing link
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. Sign Documents
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Recipients click the link in their email
+- They enter their name and click "Sign Document"
+- All parties receive email notifications when signing is complete
+
+## Project Structure
+
+```
+├── app/
+│   ├── api/                    # API routes
+│   │   ├── auth/              # Authentication endpoints
+│   │   ├── documents/         # Document management
+│   │   └── sign/              # Signing endpoints
+│   ├── auth/                  # Authentication pages
+│   ├── dashboard/             # User dashboard
+│   ├── sign/                  # Public signing pages
+│   └── uploads/               # File serving
+├── components/                # React components
+│   ├── ui/                   # shadcn/ui components
+│   └── ...                   # Custom components
+├── lib/                      # Utility functions
+│   ├── auth.ts              # NextAuth configuration
+│   ├── email.ts             # Email utilities
+│   └── utils.ts             # General utilities
+├── prisma/
+│   └── schema.prisma        # Database schema
+└── uploads/                 # Local file storage
+```
+
+## Database Schema
+
+The application uses the following main entities:
+
+- **User**: Account information and authentication
+- **Document**: Uploaded documents with metadata
+- **Signature**: Signature requests and completion status
+
+## Email Configuration
+
+### Gmail Setup
+
+1. Enable 2-factor authentication on your Gmail account
+2. Generate an "App Password" for this application
+3. Use the app password in the `EMAIL_PASS` environment variable
+
+### Other SMTP Providers
+
+Update the email configuration in `.env` to match your SMTP provider's settings.
+
+## File Storage
+
+### Local Storage (Default)
+
+Files are stored in the `uploads/` directory. This is suitable for development and small deployments.
+
+### Cloud Storage (Production)
+
+To use AWS S3 or similar cloud storage:
+
+1. Update the upload API (`app/api/documents/upload/route.ts`)
+2. Replace local file operations with cloud storage SDK calls
+3. Update file URLs to point to cloud storage
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy
+
+### Other Platforms
+
+The application can be deployed to any platform that supports Next.js:
+
+- Netlify
+- Railway
+- DigitalOcean App Platform
+- AWS Amplify
+
+## Security Considerations
+
+- All signing links use secure, unique tokens
+- Passwords are hashed using bcrypt
+- File uploads are validated for type and size
+- Email addresses are validated before sending
+
+## Development
+
+### Adding New Features
+
+1. Update the database schema in `prisma/schema.prisma`
+2. Run `npx prisma db push` to apply changes
+3. Update TypeScript types as needed
+4. Implement the feature following the existing patterns
+
+### Database Management
+
+```bash
+# View database in Prisma Studio
+npx prisma studio
+
+# Reset database
+npx prisma db push --force-reset
+
+# Generate new migration
+npx prisma migrate dev --name your-migration-name
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is open source and available under the MIT License.
+
+## Support
+
+For questions or issues, please open a GitHub issue or contact the maintainers.

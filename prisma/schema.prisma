@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String?
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  documents     Document[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  fileName    String
+  fileUrl     String
+  fileSize    Int
+  mimeType    String
+  status      String   @default("draft") // draft, sent, signed, completed
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  signatures  Signature[]
+  signatureAreas SignatureArea[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SignatureArea {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  type       String   // "signature", "name", "date"
+  x          Float    // X coordinate
+  y          Float    // Y coordinate
+  width      Float    // Width of the area
+  height     Float    // Height of the area
+  pageNumber Int      @default(1) // Page number (1-based)
+  label      String?  // Optional label for the area
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Signature {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  signerEmail String
+  signerName  String?
+  signedAt    DateTime?
+  signatureData String? // Base64 encoded signature image
+  signedDocumentUrl String? // URL to the signed PDF
+  status     String   @default("pending") // pending, signed
+  token      String   @unique @default(cuid()) // For secure signing links
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
