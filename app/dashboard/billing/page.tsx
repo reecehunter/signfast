@@ -11,6 +11,7 @@ function BillingPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -55,12 +56,33 @@ function BillingPageContent() {
         userName={session.user?.name || undefined}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileToggle={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
       />
 
       <main className='flex-1 overflow-auto'>
-        <div className='p-6'>
+        {/* Mobile Header */}
+        <div className='md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between'>
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className='p-2 rounded-md hover:bg-gray-100'
+          >
+            <svg className='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M4 6h16M4 12h16M4 18h16'
+              />
+            </svg>
+          </button>
+          <h1 className='text-lg font-semibold text-gray-900'>Billing</h1>
+          <div className='w-10' /> {/* Spacer for centering */}
+        </div>
+
+        <div className='p-4 md:p-6'>
           <div className='mb-6'>
-            <h1 className='text-3xl font-bold'>Billing & Usage</h1>
+            <h1 className='text-2xl md:text-3xl font-bold'>Billing & Usage</h1>
             <p className='text-gray-600 mt-2'>
               Manage your subscription and view your signature usage
             </p>

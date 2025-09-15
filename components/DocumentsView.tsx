@@ -99,12 +99,12 @@ export function DocumentsView({ documents, isLoading, onRefresh }: DocumentsView
 
   return (
     <div className='space-y-6'>
-      <div className='flex justify-between items-center'>
+      <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
         <div>
-          <h2 className='text-2xl font-bold text-gray-900'>Documents</h2>
+          <h2 className='text-xl sm:text-2xl font-bold text-gray-900'>Documents</h2>
           <p className='text-gray-600'>Manage your uploaded documents</p>
         </div>
-        <Button onClick={() => setShowUploadDialog(true)}>
+        <Button onClick={() => setShowUploadDialog(true)} className='w-full sm:w-auto'>
           <Upload className='h-4 w-4 mr-2' />
           Upload Document
         </Button>
@@ -126,78 +126,146 @@ export function DocumentsView({ documents, isLoading, onRefresh }: DocumentsView
         </Card>
       ) : (
         <Card>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {documents.map((document) => (
-                  <TableRow key={document.id}>
-                    <TableCell className='font-medium'>
-                      <div className='flex flex-col items-start'>
-                        <div className='font-medium'>{document.title}</div>
-                        <div className='text-sm text-gray-500'>{document.fileName}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{new Date(document.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <div className='flex space-x-2'>
-                        <Button
-                          variant='outline'
-                          size='sm'
-                          onClick={() => handleEditDocument(document)}
-                        >
-                          <Edit className='h-4 w-4 mr-2' />
-                          Edit
-                        </Button>
-                        {(document.status === 'draft' ||
-                          document.status === 'completed' ||
-                          (document.signatures.length > 0 &&
-                            document.signatures[0].status === 'signed')) && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant='outline'
-                                size='sm'
-                                className='text-red-600 hover:text-red-700'
-                              >
-                                <Trash2 className='h-4 w-4 mr-2' />
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Document</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete &quot;{document.title}&quot;?
-                                  {document.status === 'completed'
-                                    ? ' This will permanently remove the completed document and all signature data.'
-                                    : ' This action cannot be undone.'}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteDocument(document.id)}
-                                  className='bg-red-600 hover:bg-red-700'
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    </TableCell>
+          <CardContent className='p-0'>
+            {/* Desktop Table */}
+            <div className='hidden md:block'>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Document</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {documents.map((document) => (
+                    <TableRow key={document.id}>
+                      <TableCell className='font-medium'>
+                        <div className='flex flex-col items-start'>
+                          <div className='font-medium'>{document.title}</div>
+                          <div className='text-sm text-gray-500'>{document.fileName}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{new Date(document.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <div className='flex space-x-2'>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={() => handleEditDocument(document)}
+                          >
+                            <Edit className='h-4 w-4 mr-2' />
+                            Edit
+                          </Button>
+                          {(document.status === 'draft' ||
+                            document.status === 'completed' ||
+                            (document.signatures.length > 0 &&
+                              document.signatures[0].status === 'signed')) && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant='outline'
+                                  size='sm'
+                                  className='text-red-600 hover:text-red-700'
+                                >
+                                  <Trash2 className='h-4 w-4 mr-2' />
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete &quot;{document.title}&quot;?
+                                    {document.status === 'completed'
+                                      ? ' This will permanently remove the completed document and all signature data.'
+                                      : ' This action cannot be undone.'}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteDocument(document.id)}
+                                    className='bg-red-600 hover:bg-red-700'
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className='md:hidden'>
+              <div className='space-y-4 p-4'>
+                {documents.map((document) => (
+                  <div key={document.id} className='border rounded-lg p-4 space-y-3'>
+                    <div>
+                      <h3 className='font-medium text-gray-900'>{document.title}</h3>
+                      <p className='text-sm text-gray-500'>{document.fileName}</p>
+                      <p className='text-xs text-gray-400 mt-1'>
+                        Created {new Date(document.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className='flex gap-2'>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => handleEditDocument(document)}
+                        className='flex-1'
+                      >
+                        <Edit className='h-4 w-4 mr-2' />
+                        Edit
+                      </Button>
+                      {(document.status === 'draft' ||
+                        document.status === 'completed' ||
+                        (document.signatures.length > 0 &&
+                          document.signatures[0].status === 'signed')) && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              className='text-red-600 hover:text-red-700 flex-1'
+                            >
+                              <Trash2 className='h-4 w-4 mr-2' />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete &quot;{document.title}&quot;?
+                                {document.status === 'completed'
+                                  ? ' This will permanently remove the completed document and all signature data.'
+                                  : ' This action cannot be undone.'}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteDocument(document.id)}
+                                className='bg-red-600 hover:bg-red-700'
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

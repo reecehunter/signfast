@@ -182,8 +182,8 @@ export function SendDocumentDialog({
             </div>
           </div>
 
-          <div className='p-3 bg-blue-50 rounded-lg'>
-            <p className='text-sm text-blue-800'>
+          <div className='p-3 bg-amber-50 rounded-lg'>
+            <p className='text-sm text-amber-800'>
               <strong>Parallel Signing:</strong> All signers will receive the document
               simultaneously and can sign in any order. The document will be completed once all
               signers have signed.

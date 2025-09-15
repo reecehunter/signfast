@@ -43,6 +43,7 @@ export default function CompletedPage() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -87,10 +88,31 @@ export default function CompletedPage() {
         userName={session.user?.name || undefined}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileToggle={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
       />
 
       <main className='flex-1 overflow-auto'>
-        <div className='p-6'>
+        {/* Mobile Header */}
+        <div className='md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between'>
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className='p-2 rounded-md hover:bg-gray-100'
+          >
+            <svg className='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M4 6h16M4 12h16M4 18h16'
+              />
+            </svg>
+          </button>
+          <h1 className='text-lg font-semibold text-gray-900'>Completed</h1>
+          <div className='w-10' /> {/* Spacer for centering */}
+        </div>
+
+        <div className='p-4 md:p-6'>
           <CompletedView documents={documents} isLoading={isLoading} />
         </div>
       </main>

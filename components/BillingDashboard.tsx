@@ -165,7 +165,7 @@ export default function BillingDashboard() {
           <CardDescription>Your current billing plan and usage information</CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
-          <div className='flex items-center justify-between'>
+          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
             <div className='flex items-center gap-2'>
               <span className='font-medium'>Plan:</span>
               {getPlanBadge()}
@@ -228,10 +228,10 @@ export default function BillingDashboard() {
           <CardDescription>Choose the plan that works best for you</CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
-          <div className='grid gap-4 md:grid-cols-2'>
+          <div className='grid gap-4 sm:grid-cols-2'>
             {/* Metered Plan */}
             <div className='border rounded-lg p-4 space-y-3'>
-              <div className='flex items-center justify-between'>
+              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
                 <h3 className='font-semibold'>Pay-per-use</h3>
                 <Badge variant={planType === 'metered' ? 'default' : 'outline'}>
                   {planType === 'metered' ? 'Current' : '$1/signature'}
@@ -261,7 +261,7 @@ export default function BillingDashboard() {
 
             {/* Unlimited Plan */}
             <div className='border rounded-lg p-4 space-y-3'>
-              <div className='flex items-center justify-between'>
+              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
                 <h3 className='font-semibold'>Unlimited</h3>
                 <Badge variant={planType === 'unlimited' ? 'default' : 'outline'}>
                   {planType === 'unlimited' ? 'Current' : '$15/month'}

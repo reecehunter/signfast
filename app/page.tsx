@@ -34,7 +34,7 @@ export default function Home() {
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100'>
+    <div className='min-h-screen bg-gradient-to-br from-amber-50 to-orange-100'>
       {/* Navigation */}
       <nav className='bg-white shadow-sm'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
@@ -59,7 +59,7 @@ export default function Home() {
         <div className='text-center'>
           <h1 className='text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl'>
             Simple Electronic
-            <span className='text-blue-600'> Signatures</span>
+            <span className='text-amber-600'> Signatures</span>
           </h1>
           <p className='mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl'>
             Upload documents, send them for signature, and track the entire process. No complex
@@ -88,7 +88,7 @@ export default function Home() {
           <div className='grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4'>
             <Card>
               <CardHeader>
-                <FileText className='h-8 w-8 text-blue-600 mb-2' />
+                <FileText className='h-8 w-8 text-amber-600 mb-2' />
                 <CardTitle className='text-lg'>Upload Documents</CardTitle>
               </CardHeader>
               <CardContent>
@@ -100,7 +100,7 @@ export default function Home() {
 
             <Card>
               <CardHeader>
-                <Users className='h-8 w-8 text-blue-600 mb-2' />
+                <Users className='h-8 w-8 text-amber-600 mb-2' />
                 <CardTitle className='text-lg'>Send for Signature</CardTitle>
               </CardHeader>
               <CardContent>
@@ -112,7 +112,7 @@ export default function Home() {
 
             <Card>
               <CardHeader>
-                <Shield className='h-8 w-8 text-blue-600 mb-2' />
+                <Shield className='h-8 w-8 text-amber-600 mb-2' />
                 <CardTitle className='text-lg'>Secure & Legal</CardTitle>
               </CardHeader>
               <CardContent>
@@ -124,7 +124,7 @@ export default function Home() {
 
             <Card>
               <CardHeader>
-                <Clock className='h-8 w-8 text-blue-600 mb-2' />
+                <Clock className='h-8 w-8 text-amber-600 mb-2' />
                 <CardTitle className='text-lg'>Track Progress</CardTitle>
               </CardHeader>
               <CardContent>
@@ -146,21 +146,21 @@ export default function Home() {
           </div>
           <div className='mt-12 grid grid-cols-1 gap-8 sm:grid-cols-3'>
             <div className='text-center'>
-              <div className='flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white text-xl font-bold mx-auto'>
+              <div className='flex items-center justify-center h-12 w-12 rounded-md bg-amber-500 text-white text-xl font-bold mx-auto'>
                 1
               </div>
               <h3 className='mt-4 text-lg font-medium text-gray-900'>Create Account</h3>
               <p className='mt-2 text-gray-600'>Sign up for a free account to get started</p>
             </div>
             <div className='text-center'>
-              <div className='flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white text-xl font-bold mx-auto'>
+              <div className='flex items-center justify-center h-12 w-12 rounded-md bg-amber-500 text-white text-xl font-bold mx-auto'>
                 2
               </div>
               <h3 className='mt-4 text-lg font-medium text-gray-900'>Upload Document</h3>
               <p className='mt-2 text-gray-600'>Upload your document and add a title</p>
             </div>
             <div className='text-center'>
-              <div className='flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white text-xl font-bold mx-auto'>
+              <div className='flex items-center justify-center h-12 w-12 rounded-md bg-amber-500 text-white text-xl font-bold mx-auto'>
                 3
               </div>
               <h3 className='mt-4 text-lg font-medium text-gray-900'>Send & Sign</h3>

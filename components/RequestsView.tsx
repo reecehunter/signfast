@@ -184,12 +184,12 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
 
   return (
     <div className='space-y-6'>
-      <div className='flex justify-between items-center'>
+      <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
         <div>
-          <h2 className='text-2xl font-bold text-gray-900'>Signature Requests</h2>
+          <h2 className='text-xl sm:text-2xl font-bold text-gray-900'>Signature Requests</h2>
           <p className='text-gray-600'>Manage outgoing signature requests</p>
         </div>
-        <Button onClick={() => setShowNewRequestDialog(true)}>
+        <Button onClick={() => setShowNewRequestDialog(true)} className='w-full sm:w-auto'>
           <Plus className='h-4 w-4 mr-2' />
           New Request
         </Button>
@@ -197,9 +197,9 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
 
       {/* Active Requests */}
       <Card>
-        <CardContent>
+        <CardContent className='p-0'>
           {signatureRequests.length === 0 ? (
-            <div className='text-center py-8'>
+            <div className='text-center py-8 px-4'>
               <Clock className='h-12 w-12 text-gray-400 mx-auto mb-4' />
               <h3 className='text-lg font-medium text-gray-900 mb-2'>No active requests</h3>
               <p className='text-gray-500 mb-4'>
@@ -211,43 +211,143 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Recipients</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Sent Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {signatureRequests.map((request) => {
-                  const pendingSignatures = request.signatures.filter(
-                    (sig) => sig.status !== 'signed'
-                  )
-                  const completedSignatures = request.signatures.filter(
-                    (sig) => sig.status === 'signed'
-                  )
-                  const allSigned =
-                    request.signatures.length > 0 &&
-                    request.signatures.every((sig) => sig.status === 'signed')
+            <>
+              {/* Desktop Table */}
+              <div className='hidden lg:block'>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Document</TableHead>
+                      <TableHead>Recipients</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Sent Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {signatureRequests.map((request) => {
+                      const pendingSignatures = request.signatures.filter(
+                        (sig) => sig.status !== 'signed'
+                      )
+                      const completedSignatures = request.signatures.filter(
+                        (sig) => sig.status === 'signed'
+                      )
+                      const allSigned =
+                        request.signatures.length > 0 &&
+                        request.signatures.every((sig) => sig.status === 'signed')
 
-                  return (
-                    <TableRow key={request.requestId}>
-                      <TableCell className='font-medium'>
-                        <div className='flex flex-col items-start'>
-                          <div className='font-medium'>{request.documentTitle}</div>
-                          <div className='text-sm text-gray-500'>{request.documentFileName}</div>
+                      return (
+                        <TableRow key={request.requestId}>
+                          <TableCell className='font-medium'>
+                            <div className='flex flex-col items-start'>
+                              <div className='font-medium'>{request.documentTitle}</div>
+                              <div className='text-sm text-gray-500'>
+                                {request.documentFileName}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className='space-y-1'>
+                              {request.signatures
+                                .sort((a, b) => a.signerIndex - b.signerIndex)
+                                .map((signature) => (
+                                  <div key={signature.id} className='text-sm'>
+                                    <div className='flex items-center space-x-2'>
+                                      <div
+                                        className={`w-2 h-2 rounded-full ${
+                                          signature.status === 'signed'
+                                            ? 'bg-green-500'
+                                            : 'bg-yellow-500'
+                                        }`}
+                                      />
+                                      <div>
+                                        <div className='font-medium'>
+                                          {signature.signerName || signature.signerEmail}
+                                        </div>
+                                        <div className='text-gray-500 text-xs'>
+                                          {signature.signerEmail}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className='text-sm'>
+                              {allSigned ? (
+                                <Badge variant='default' className='bg-green-600'>
+                                  Completed
+                                </Badge>
+                              ) : (
+                                <Badge variant='secondary'>
+                                  {completedSignatures.length}/{request.signatures.length} signed
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(request.documentCreatedAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className='flex items-center space-x-2'>
+                              <div className='text-sm text-gray-500'>
+                                {allSigned ? (
+                                  <span className='text-green-600'>All signed</span>
+                                ) : (
+                                  <span className='text-yellow-600'>
+                                    {pendingSignatures.length} pending
+                                  </span>
+                                )}
+                              </div>
+                              {!allSigned && (
+                                <Button
+                                  variant='outline'
+                                  size='sm'
+                                  onClick={() => handleDeleteRequest(request.requestId)}
+                                  disabled={deletingRequestId === request.requestId}
+                                  className='text-red-600 hover:text-red-700 hover:bg-red-50'
+                                >
+                                  <Trash2 className='h-4 w-4' />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className='lg:hidden'>
+                <div className='space-y-4 p-4'>
+                  {signatureRequests.map((request) => {
+                    const completedSignatures = request.signatures.filter(
+                      (sig) => sig.status === 'signed'
+                    )
+                    const allSigned =
+                      request.signatures.length > 0 &&
+                      request.signatures.every((sig) => sig.status === 'signed')
+
+                    return (
+                      <div key={request.requestId} className='border rounded-lg p-4 space-y-3'>
+                        <div>
+                          <h3 className='font-medium text-gray-900'>{request.documentTitle}</h3>
+                          <p className='text-sm text-gray-500'>{request.documentFileName}</p>
+                          <p className='text-xs text-gray-400 mt-1'>
+                            Sent {new Date(request.documentCreatedAt).toLocaleDateString()}
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className='space-y-1'>
-                          {request.signatures
-                            .sort((a, b) => a.signerIndex - b.signerIndex)
-                            .map((signature) => (
-                              <div key={signature.id} className='text-sm'>
-                                <div className='flex items-center space-x-2'>
+
+                        <div>
+                          <h4 className='text-sm font-medium text-gray-700 mb-2'>Recipients:</h4>
+                          <div className='space-y-2'>
+                            {request.signatures
+                              .sort((a, b) => a.signerIndex - b.signerIndex)
+                              .map((signature) => (
+                                <div key={signature.id} className='flex items-center space-x-2'>
                                   <div
                                     className={`w-2 h-2 rounded-full ${
                                       signature.status === 'signed'
@@ -255,44 +355,29 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
                                         : 'bg-yellow-500'
                                     }`}
                                   />
-                                  <div>
-                                    <div className='font-medium'>
+                                  <div className='flex-1'>
+                                    <div className='text-sm font-medium'>
                                       {signature.signerName || signature.signerEmail}
                                     </div>
-                                    <div className='text-gray-500 text-xs'>
+                                    <div className='text-xs text-gray-500'>
                                       {signature.signerEmail}
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className='text-sm'>
-                          {allSigned ? (
-                            <Badge variant='default' className='bg-green-600'>
-                              Completed
-                            </Badge>
-                          ) : (
-                            <Badge variant='secondary'>
-                              {completedSignatures.length}/{request.signatures.length} signed
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(request.documentCreatedAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className='flex items-center space-x-2'>
-                          <div className='text-sm text-gray-500'>
+
+                        <div className='flex items-center justify-between'>
+                          <div>
                             {allSigned ? (
-                              <span className='text-green-600'>All signed</span>
+                              <Badge variant='default' className='bg-green-600'>
+                                Completed
+                              </Badge>
                             ) : (
-                              <span className='text-yellow-600'>
-                                {pendingSignatures.length} pending
-                              </span>
+                              <Badge variant='secondary'>
+                                {completedSignatures.length}/{request.signatures.length} signed
+                              </Badge>
                             )}
                           </div>
                           {!allSigned && (
@@ -303,16 +388,17 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
                               disabled={deletingRequestId === request.requestId}
                               className='text-red-600 hover:text-red-700 hover:bg-red-50'
                             >
-                              <Trash2 className='h-4 w-4' />
+                              <Trash2 className='h-4 w-4 mr-2' />
+                              Delete
                             </Button>
                           )}
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

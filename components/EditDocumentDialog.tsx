@@ -122,12 +122,12 @@ export function EditDocumentDialog({
       <div className='flex items-center justify-center space-x-4'>
         <div
           className={`flex items-center space-x-2 ${
-            currentStep === 'signers' ? 'text-blue-600' : 'text-gray-400'
+            currentStep === 'signers' ? 'text-amber-600' : 'text-gray-400'
           }`}
         >
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep === 'signers' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+              currentStep === 'signers' ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-600'
             }`}
           >
             1
@@ -137,12 +137,12 @@ export function EditDocumentDialog({
         <div className='w-8 h-px bg-gray-300'></div>
         <div
           className={`flex items-center space-x-2 ${
-            currentStep === 'areas' ? 'text-blue-600' : 'text-gray-400'
+            currentStep === 'areas' ? 'text-amber-600' : 'text-gray-400'
           }`}
         >
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep === 'areas' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+              currentStep === 'areas' ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-600'
             }`}
           >
             2
@@ -188,7 +188,7 @@ export function EditDocumentDialog({
             </button>
             <button
               onClick={handleNextStep}
-              className='px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700'
+              className='px-4 py-2 text-sm font-medium text-white bg-amber-600 border border-transparent rounded-md hover:bg-amber-700'
             >
               Next: Select Areas
             </button>
@@ -198,9 +198,9 @@ export function EditDocumentDialog({
 
       {currentStep === 'areas' && (
         <div className='space-y-4'>
-          <div className='p-4 bg-blue-50 rounded-lg'>
-            <h3 className='font-medium text-blue-900'>Signature Areas</h3>
-            <p className='text-sm text-blue-700 mt-1'>
+          <div className='p-4 bg-amber-50 rounded-lg'>
+            <h3 className='font-medium text-amber-900'>Signature Areas</h3>
+            <p className='text-sm text-amber-700 mt-1'>
               Now select where each signer should sign on the document. You can assign specific
               areas to individual signers.
             </p>

@@ -222,7 +222,7 @@ export function ClientPDFSelector({
   const getAreaTypeColor = (type: 'signature' | 'name' | 'date' | 'business') => {
     switch (type) {
       case 'signature':
-        return 'border-blue-500 bg-blue-100 bg-opacity-30 text-blue-700'
+        return 'border-amber-500 bg-amber-100 bg-opacity-30 text-amber-700'
       case 'name':
         return 'border-green-500 bg-green-100 bg-opacity-30 text-green-700'
       case 'date':
@@ -240,7 +240,7 @@ export function ClientPDFSelector({
       <div className='w-full max-w-6xl mx-auto'>
         <div className='flex items-center justify-center h-96'>
           <div className='text-center'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4'></div>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mx-auto mb-4'></div>
             <p>Loading PDF viewer...</p>
           </div>
         </div>
@@ -273,14 +273,14 @@ export function ClientPDFSelector({
         </p>
       </div>
       {/* Area Type Selection */}
-      <div className='flex items-center space-x-4 p-3 bg-blue-50 rounded-lg'>
+      <div className='flex items-center space-x-4 p-3 bg-amber-50 rounded-lg'>
         <span className='text-sm font-medium text-gray-700'>Add area type:</span>
         <div className='flex space-x-2'>
           <Button
             variant={currentAreaType === 'signature' ? 'default' : 'outline'}
             size='sm'
             onClick={() => setCurrentAreaType('signature')}
-            className={currentAreaType === 'signature' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+            className={currentAreaType === 'signature' ? 'bg-amber-600 hover:bg-amber-700' : ''}
           >
             Signature
           </Button>
@@ -330,7 +330,7 @@ export function ClientPDFSelector({
                 variant={currentSignerIndex === i ? 'default' : 'outline'}
                 size='sm'
                 onClick={() => setCurrentSignerIndex(i)}
-                className={currentSignerIndex === i ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+                className={currentSignerIndex === i ? 'bg-amber-600 hover:bg-amber-700' : ''}
               >
                 Signer {i + 1}
               </Button>
@@ -416,7 +416,7 @@ export function ClientPDFSelector({
                 className={`absolute border-2 pointer-events-none ${
                   isSelectionTooSmall
                     ? 'border-red-500 bg-red-100 bg-opacity-30'
-                    : 'border-blue-500 bg-blue-100 bg-opacity-30'
+                    : 'border-amber-500 bg-amber-100 bg-opacity-30'
                 }`}
                 style={{
                   left: Math.min(selectionStart.x, selectionEnd.x),
@@ -520,7 +520,7 @@ export function ClientPDFSelector({
           <div className='space-y-2'>
             <div className='flex space-x-4'>
               <span>Total areas: {signatureAreas.length}</span>
-              <span className='text-blue-600'>
+              <span className='text-amber-600'>
                 Signatures: {signatureAreas.filter((a) => a.type === 'signature').length}
               </span>
               <span className='text-green-600'>
@@ -537,7 +537,7 @@ export function ClientPDFSelector({
               <div className='flex space-x-4'>
                 <span>Signer assignments:</span>
                 {Array.from({ length: numberOfSigners }, (_, i) => (
-                  <span key={i} className='text-indigo-600'>
+                  <span key={i} className='text-amber-600'>
                     Signer {i + 1}: {signatureAreas.filter((a) => a.signerIndex === i).length} areas
                   </span>
                 ))}
@@ -569,7 +569,7 @@ export function ClientPDFSelector({
           <Button
             onClick={handleConfirm}
             disabled={signatureAreas.length === 0}
-            className='bg-blue-600 hover:bg-blue-700'
+            className='bg-amber-600 hover:bg-amber-700'
           >
             <Check className='h-4 w-4 mr-2' />
             Confirm

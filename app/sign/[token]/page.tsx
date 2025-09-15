@@ -306,7 +306,7 @@ export default function SigningPage() {
                           variant='outline'
                           className={
                             area.type === 'signature'
-                              ? 'border-blue-500 text-blue-700'
+                              ? 'border-amber-500 text-amber-700'
                               : area.type === 'name'
                               ? 'border-green-500 text-green-700'
                               : 'border-purple-500 text-purple-700'
@@ -400,8 +400,8 @@ export default function SigningPage() {
                   {!document.signatureAreas.some((area) =>
                     ['name', 'date', 'business'].includes(area.type)
                   ) && (
-                    <div className='p-4 bg-blue-50 rounded-lg'>
-                      <p className='text-sm text-blue-700'>
+                    <div className='p-4 bg-amber-50 rounded-lg'>
+                      <p className='text-sm text-amber-700'>
                         This document only requires your signature. Click &quot;Continue to
                         Sign&quot; to proceed.
                       </p>

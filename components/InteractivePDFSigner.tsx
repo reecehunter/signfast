@@ -184,7 +184,7 @@ export function InteractivePDFSigner({
       <Card className='w-full max-w-6xl mx-auto'>
         <CardContent className='flex items-center justify-center h-96'>
           <div className='text-center'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4'></div>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mx-auto mb-4'></div>
             <p>Loading PDF viewer...</p>
           </div>
         </CardContent>
@@ -376,7 +376,7 @@ export function InteractivePDFSigner({
             <span>
               Areas completed: {Object.keys(completedAreas).length} / {areasToRender.length}
             </span>
-            <span className='text-blue-600'>
+            <span className='text-amber-600'>
               Signatures:{' '}
               {areasToRender.filter((a) => a.type === 'signature' && completedAreas[a.id]).length} /{' '}
               {areasToRender.filter((a) => a.type === 'signature').length}
