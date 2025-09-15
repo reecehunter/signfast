@@ -213,7 +213,7 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
           ) : (
             <>
               {/* Desktop Table */}
-              <div className='hidden lg:block'>
+              <div className='hidden lg:block px-4'>
                 <Table>
                   <TableHeader>
                     <TableRow>

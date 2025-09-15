@@ -245,7 +245,7 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
         <Card>
           <CardContent className='p-0'>
             {/* Desktop Table */}
-            <div className='hidden lg:block'>
+            <div className='hidden lg:block px-4'>
               <Table>
                 <TableHeader>
                   <TableRow>

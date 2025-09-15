@@ -128,7 +128,7 @@ export function DocumentsView({ documents, isLoading, onRefresh }: DocumentsView
         <Card>
           <CardContent className='p-0'>
             {/* Desktop Table */}
-            <div className='hidden md:block'>
+            <div className='hidden md:block px-4'>
               <Table>
                 <TableHeader>
                   <TableRow>
