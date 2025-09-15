@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
+// @ts-expect-error - NextAuth v4 type definitions issue
+import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { PrismaClient } from '@prisma/client'
 import { unlink } from 'fs/promises'
 import { join } from 'path'
+import { deleteFromS3, extractS3KeyFromUrl } from '@/lib/s3'
 
 const prisma = new PrismaClient()
 
@@ -88,10 +90,20 @@ export async function DELETE(
 
     // Delete the physical file
     try {
-      const fileName = document.fileUrl.split('/').pop()
-      if (fileName) {
-        const filePath = join(process.cwd(), 'uploads', fileName)
-        await unlink(filePath)
+      // Check if it's an S3 URL or local file
+      if (/^https?:\/\//i.test(document.fileUrl)) {
+        // S3 file - extract key and delete from S3
+        const s3Key = extractS3KeyFromUrl(document.fileUrl)
+        if (s3Key) {
+          await deleteFromS3(s3Key)
+        }
+      } else {
+        // Local file
+        const fileName = document.fileUrl.split('/').pop()
+        if (fileName) {
+          const filePath = join(process.cwd(), 'uploads', fileName)
+          await unlink(filePath)
+        }
       }
     } catch (fileError) {
       console.error('Error deleting file:', fileError)

@@ -12,7 +12,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { CheckCircle, Download, Eye } from 'lucide-react'
+import { CheckCircle, Download, Eye, Trash2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 interface Document {
   id: string
@@ -48,9 +59,24 @@ interface Document {
 interface CompletedViewProps {
   documents: Document[]
   isLoading: boolean
+  currentUserEmail: string
+  onRefresh: () => void
 }
 
-export function CompletedView({ documents, isLoading }: CompletedViewProps) {
+export function CompletedView({
+  documents,
+  isLoading,
+  currentUserEmail,
+  onRefresh,
+}: CompletedViewProps) {
+  // Helper function to get display name for a signer
+  const getSignerDisplayName = (signerEmail: string, signerName?: string) => {
+    if (signerEmail === currentUserEmail) {
+      return 'You'
+    }
+    return signerName || signerEmail
+  }
+
   // Filter documents that have been completed (all signatures are signed)
   const completedDocuments = documents.filter(
     (doc) =>
@@ -156,9 +182,9 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
           document.body.removeChild(link)
         }
       } else {
-        // Fallback to original document if no signed version
+        // Fallback to original document if no signed version - use API endpoint instead of direct S3 URL
         const link = document.createElement('a')
-        link.href = request.documentFileUrl
+        link.href = `/api/documents/${request.documentId}/download`
         link.download = request.documentFileName
         document.body.appendChild(link)
         link.click()
@@ -202,8 +228,34 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
         window.open(`/api/signed-documents/${fileName}`, '_blank')
       }
     } else {
-      // Fallback to original document if no signed version
-      window.open(request.documentFileUrl, '_blank')
+      // Fallback to original document if no signed version - use API endpoint instead of direct S3 URL
+      window.open(`/api/documents/${request.documentId}/view`, '_blank')
+    }
+  }
+
+  const handleDeleteRequest = async (requestId: string) => {
+    if (
+      !confirm(
+        'Are you sure you want to delete this completed signature request? This will remove the request from your completed list.'
+      )
+    ) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/signature-requests/${requestId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        onRefresh()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to delete signature request')
+      }
+    } catch (error) {
+      console.error('Error deleting signature request:', error)
+      alert('Failed to delete signature request')
     }
   }
 
@@ -275,7 +327,10 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
                                   <div className='w-2 h-2 rounded-full bg-green-500' />
                                   <div>
                                     <div className='font-medium'>
-                                      {signature.signerName || signature.signerEmail}
+                                      {getSignerDisplayName(
+                                        signature.signerEmail,
+                                        signature.signerName
+                                      )}
                                     </div>
                                     <div className='text-gray-500 text-xs'>
                                       {signature.signerEmail}
@@ -324,6 +379,37 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
                             <Download className='h-4 w-4 mr-2' />
                             Download
                           </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                className='text-red-600 hover:text-red-700 hover:bg-red-50'
+                              >
+                                <Trash2 className='h-4 w-4 mr-2' />
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Signature Request</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this signature request for &quot;
+                                  {request.documentTitle}
+                                  &quot;? This will remove the request from your completed list.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteRequest(request.requestId)}
+                                  className='bg-red-600 hover:bg-red-700'
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -357,7 +443,10 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
                               <div className='w-2 h-2 rounded-full bg-green-500' />
                               <div className='flex-1'>
                                 <div className='text-sm font-medium'>
-                                  {signature.signerName || signature.signerEmail}
+                                  {getSignerDisplayName(
+                                    signature.signerEmail,
+                                    signature.signerName
+                                  )}
                                 </div>
                                 <div className='text-xs text-gray-500'>{signature.signerEmail}</div>
                               </div>
@@ -388,6 +477,36 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
                           <Download className='h-4 w-4 mr-2' />
                           Download
                         </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              className='text-red-600 hover:text-red-700 hover:bg-red-50'
+                            >
+                              <Trash2 className='h-4 w-4 mr-2' />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Signature Request</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this signature request for &quot;
+                                {request.documentTitle}&quot;?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteRequest(request.requestId)}
+                                className='bg-red-600 hover:bg-red-700'
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </div>

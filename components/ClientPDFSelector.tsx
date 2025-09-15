@@ -19,7 +19,7 @@ interface SignatureArea {
   pageNumber: number
   type: 'signature' | 'name' | 'date' | 'business'
   label?: string
-  signerIndex?: number | null // Which signer this area belongs to (0-based, null for all signers)
+  signerIndex?: number // Which signer this area belongs to (0-based)
 }
 
 interface ClientPDFSelectorProps {
@@ -50,7 +50,7 @@ export function ClientPDFSelector({
   const [currentAreaType, setCurrentAreaType] = useState<
     'signature' | 'name' | 'date' | 'business'
   >('signature')
-  const [currentSignerIndex, setCurrentSignerIndex] = useState<number | null>(null) // null means all signers
+  const [currentSignerIndex, setCurrentSignerIndex] = useState<number>(0) // Which signer this area belongs to (0-based)
   const [error, setError] = useState<string>('')
   const [isSelectionTooSmall, setIsSelectionTooSmall] = useState(false)
 
@@ -201,7 +201,7 @@ export function ClientPDFSelector({
         signerIndex: currentSignerIndex,
         label: `${currentAreaType.charAt(0).toUpperCase() + currentAreaType.slice(1)} ${
           signatureAreas.filter((a) => a.type === currentAreaType).length + 1
-        }${currentSignerIndex !== null ? ` (Signer ${currentSignerIndex + 1})` : ''}`,
+        } (Signer ${currentSignerIndex + 1})`,
       }
 
       setSignatureAreas((prev) => [...prev, newArea])
@@ -316,14 +316,6 @@ export function ClientPDFSelector({
         <div className='flex items-center space-x-4 p-3 bg-green-50 rounded-lg'>
           <span className='text-sm font-medium text-gray-700'>Assign to signer:</span>
           <div className='flex space-x-2'>
-            <Button
-              variant={currentSignerIndex === null ? 'default' : 'outline'}
-              size='sm'
-              onClick={() => setCurrentSignerIndex(null)}
-              className={currentSignerIndex === null ? 'bg-gray-600 hover:bg-gray-700' : ''}
-            >
-              All Signers
-            </Button>
             {Array.from({ length: numberOfSigners }, (_, i) => (
               <Button
                 key={i}
@@ -541,9 +533,6 @@ export function ClientPDFSelector({
                     Signer {i + 1}: {signatureAreas.filter((a) => a.signerIndex === i).length} areas
                   </span>
                 ))}
-                <span className='text-gray-500'>
-                  All signers: {signatureAreas.filter((a) => a.signerIndex === null).length} areas
-                </span>
               </div>
             )}
           </div>

@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Send, Plus, Clock, FileText, Trash2 } from 'lucide-react'
+import { Send, Plus, Clock, FileText, Trash2, AlertTriangle } from 'lucide-react'
 import { SendDocumentDialog } from '@/components/SendDocumentDialog'
 
 interface Document {
@@ -57,13 +57,27 @@ interface RequestsViewProps {
   documents: Document[]
   isLoading: boolean
   onRefresh: () => void
+  currentUserEmail: string
 }
 
-export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewProps) {
+export function RequestsView({
+  documents,
+  isLoading,
+  onRefresh,
+  currentUserEmail,
+}: RequestsViewProps) {
   const [showNewRequestDialog, setShowNewRequestDialog] = useState(false)
   const [showSendDialog, setShowSendDialog] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null)
+
+  // Helper function to get display name for a signer
+  const getSignerDisplayName = (signerEmail: string, signerName?: string) => {
+    if (signerEmail === currentUserEmail) {
+      return 'You'
+    }
+    return signerName || signerEmail
+  }
 
   // Filter documents that have been sent for signature (have signatures)
   const sentDocuments = documents.filter((doc) => doc.signatures.length > 0)
@@ -262,7 +276,10 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
                                       />
                                       <div>
                                         <div className='font-medium'>
-                                          {signature.signerName || signature.signerEmail}
+                                          {getSignerDisplayName(
+                                            signature.signerEmail,
+                                            signature.signerName
+                                          )}
                                         </div>
                                         <div className='text-gray-500 text-xs'>
                                           {signature.signerEmail}
@@ -357,7 +374,10 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
                                   />
                                   <div className='flex-1'>
                                     <div className='text-sm font-medium'>
-                                      {signature.signerName || signature.signerEmail}
+                                      {getSignerDisplayName(
+                                        signature.signerEmail,
+                                        signature.signerName
+                                      )}
                                     </div>
                                     <div className='text-xs text-gray-500'>
                                       {signature.signerEmail}
@@ -423,29 +443,52 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
               <div className='space-y-2'>
                 <Label>Select Document</Label>
                 <div className='grid gap-2 max-h-60 overflow-y-auto'>
-                  {availableDocuments.map((document) => (
-                    <Card
-                      key={document.id}
-                      className='cursor-pointer hover:bg-gray-50 transition-colors'
-                      onClick={() => handleCreateRequest(document)}
-                    >
-                      <CardContent className='p-4'>
-                        <div className='flex items-center justify-between'>
-                          <div>
-                            <h4 className='font-medium'>{document.title}</h4>
-                            <p className='text-sm text-gray-500'>{document.fileName}</p>
-                            <p className='text-xs text-gray-400'>
-                              Uploaded {new Date(document.createdAt).toLocaleDateString()}
-                            </p>
+                  {availableDocuments.map((document) => {
+                    const hasSignatureAreas =
+                      document.signatureAreas && document.signatureAreas.length > 0
+
+                    return (
+                      <Card
+                        key={document.id}
+                        className={`transition-colors ${
+                          hasSignatureAreas
+                            ? 'cursor-pointer hover:bg-gray-50'
+                            : 'cursor-not-allowed opacity-60'
+                        }`}
+                        onClick={() => hasSignatureAreas && handleCreateRequest(document)}
+                      >
+                        <CardContent className='p-4'>
+                          <div className='flex items-center justify-between'>
+                            <div className='flex-1'>
+                              <div className='flex items-center gap-2'>
+                                <h4 className='font-medium'>{document.title}</h4>
+                                {!hasSignatureAreas && (
+                                  <AlertTriangle className='h-4 w-4 text-amber-500' />
+                                )}
+                              </div>
+                              <p className='text-sm text-gray-500'>{document.fileName}</p>
+                              <p className='text-xs text-gray-400'>
+                                Uploaded {new Date(document.createdAt).toLocaleDateString()}
+                              </p>
+                              {!hasSignatureAreas && (
+                                <p className='text-xs text-amber-600 mt-1'>
+                                  No signature areas defined - edit document first
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              size='sm'
+                              disabled={!hasSignatureAreas}
+                              className={!hasSignatureAreas ? 'opacity-50' : ''}
+                            >
+                              <Send className='h-4 w-4 mr-2' />
+                              Use
+                            </Button>
                           </div>
-                          <Button size='sm'>
-                            <Send className='h-4 w-4 mr-2' />
-                            Use
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               </div>
             )}

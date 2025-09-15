@@ -113,7 +113,12 @@ export default function CompletedPage() {
         </div>
 
         <div className='p-4 md:p-6'>
-          <CompletedView documents={documents} isLoading={isLoading} />
+          <CompletedView
+            documents={documents}
+            isLoading={isLoading}
+            currentUserEmail={session.user?.email || ''}
+            onRefresh={fetchDocuments}
+          />
         </div>
       </main>
     </div>

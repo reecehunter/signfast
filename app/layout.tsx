@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'SignFast',
+  title: 'SignFast | eSignatures made easy',
   description: 'eSignatures made easy',
 }
 

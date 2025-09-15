@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
+// @ts-expect-error - NextAuth v4 type definitions issue
+import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { PrismaClient } from '@prisma/client'
 

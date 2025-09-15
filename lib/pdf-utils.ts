@@ -1,6 +1,7 @@
 import { PDFDocument, rgb } from 'pdf-lib'
-import { readFile, writeFile } from 'fs/promises'
+import { readFile, writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
+import { uploadToS3, downloadFromS3, extractS3KeyFromUrl } from '@/lib/s3'
 
 export async function addSignatureToPDF(
   originalPdfPath: string,
@@ -20,8 +21,21 @@ export async function addSignatureToPDF(
   areaData?: { [areaId: string]: { type: string; data: string } }
 ): Promise<void> {
   try {
-    // Read the original PDF
-    const pdfBytes = await readFile(originalPdfPath)
+    // Read the original PDF (supports local temp path or S3 URL)
+    let pdfBytes: Buffer
+
+    if (originalPdfPath.startsWith('http')) {
+      // Handle S3 URL
+      const s3Key = extractS3KeyFromUrl(originalPdfPath)
+      if (!s3Key) {
+        throw new Error(`Unable to extract S3 key from URL: ${originalPdfPath}`)
+      }
+      pdfBytes = await downloadFromS3(s3Key)
+    } else {
+      // Handle local file path
+      pdfBytes = await readFile(originalPdfPath)
+    }
+
     const pdfDoc = await PDFDocument.load(pdfBytes)
 
     // Get all pages
@@ -200,7 +214,7 @@ export async function addSignatureToPDF(
 }
 
 export async function createSignedDocument(
-  originalFilePath: string,
+  originalFileUrlOrPath: string,
   signerName: string,
   signerDate: string,
   documentId: string,
@@ -217,22 +231,18 @@ export async function createSignedDocument(
   areaData?: { [areaId: string]: { type: string; data: string } }
 ): Promise<string> {
   try {
-    // Create signed documents directory if it doesn't exist
-    const signedDir = join(process.cwd(), 'uploads', 'signed')
-    await import('fs').then((fs) => {
-      if (!fs.existsSync(signedDir)) {
-        fs.mkdirSync(signedDir, { recursive: true })
-      }
-    })
+    // Ensure tmp directory exists
+    const tmpDir = join(process.cwd(), 'tmp')
+    await mkdir(tmpDir, { recursive: true })
 
     // Generate unique filename for signed document
     const timestamp = Date.now()
     const signedFileName = `signed-${documentId}-${timestamp}.pdf`
-    const signedFilePath = join(signedDir, signedFileName)
+    const signedFilePath = join(tmpDir, signedFileName)
 
     // Add signature to PDF
     await addSignatureToPDF(
-      originalFilePath,
+      originalFileUrlOrPath,
       signerName,
       signerDate,
       signedFilePath,
@@ -240,8 +250,16 @@ export async function createSignedDocument(
       areaData
     )
 
-    // Return the relative path for storage in database
-    return `/uploads/signed/${signedFileName}`
+    // Upload to S3 and return URL
+    const buffer = await readFile(signedFilePath)
+    const { url } = await uploadToS3({
+      key: `uploads/signed/${signedFileName}`,
+      contentType: 'application/pdf',
+      body: buffer,
+      cacheControl: 'public, max-age=31536000, immutable',
+      acl: 'private',
+    })
+    return url
   } catch (error) {
     console.error('Error creating signed document:', error)
     throw error
@@ -249,7 +267,7 @@ export async function createSignedDocument(
 }
 
 export async function createFinalMergedDocument(
-  originalFilePath: string,
+  originalFileUrlOrPath: string,
   documentId: string,
   allSignatures: Array<{
     signerName: string
@@ -270,21 +288,30 @@ export async function createFinalMergedDocument(
   }>
 ): Promise<string> {
   try {
-    // Create signed documents directory if it doesn't exist
-    const signedDir = join(process.cwd(), 'uploads', 'signed')
-    await import('fs').then((fs) => {
-      if (!fs.existsSync(signedDir)) {
-        fs.mkdirSync(signedDir, { recursive: true })
-      }
-    })
+    // Ensure tmp directory exists
+    const tmpDir = join(process.cwd(), 'tmp')
+    await mkdir(tmpDir, { recursive: true })
 
     // Generate unique filename for final merged document
     const timestamp = Date.now()
     const finalFileName = `final-${documentId}-${timestamp}.pdf`
-    const finalFilePath = join(signedDir, finalFileName)
+    const finalFilePath = join(tmpDir, finalFileName)
 
-    // Read the original PDF
-    const pdfBytes = await readFile(originalFilePath)
+    // Read the original PDF (supports local temp path or S3 URL)
+    let pdfBytes: Buffer
+
+    if (originalFileUrlOrPath.startsWith('http')) {
+      // Handle S3 URL
+      const s3Key = extractS3KeyFromUrl(originalFileUrlOrPath)
+      if (!s3Key) {
+        throw new Error(`Unable to extract S3 key from URL: ${originalFileUrlOrPath}`)
+      }
+      pdfBytes = await downloadFromS3(s3Key)
+    } else {
+      // Handle local file path
+      pdfBytes = await readFile(originalFileUrlOrPath)
+    }
+
     const pdfDoc = await PDFDocument.load(pdfBytes)
 
     // Get all pages
@@ -418,8 +445,16 @@ export async function createFinalMergedDocument(
     const finalPdfBytes = await pdfDoc.save()
     await writeFile(finalFilePath, finalPdfBytes)
 
-    console.log('Final merged PDF created successfully:', finalFilePath)
-    return `/uploads/signed/${finalFileName}`
+    // Upload to S3 and return URL
+    const { url } = await uploadToS3({
+      key: `uploads/signed/${finalFileName}`,
+      contentType: 'application/pdf',
+      body: finalPdfBytes,
+      cacheControl: 'public, max-age=31536000, immutable',
+      acl: 'private',
+    })
+    console.log('Final merged PDF created successfully')
+    return url
   } catch (error) {
     console.error('Error creating final merged document:', error)
     throw error

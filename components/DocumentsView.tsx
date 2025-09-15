@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Upload, FileText, Trash2, Edit } from 'lucide-react'
+import { Upload, FileText, Trash2, Edit, AlertTriangle } from 'lucide-react'
 import { DocumentUploadDialog } from '@/components/DocumentUploadDialog'
 
 interface Document {
@@ -142,8 +142,18 @@ export function DocumentsView({ documents, isLoading, onRefresh }: DocumentsView
                     <TableRow key={document.id}>
                       <TableCell className='font-medium'>
                         <div className='flex flex-col items-start'>
-                          <div className='font-medium'>{document.title}</div>
+                          <div className='flex items-center gap-2'>
+                            <div className='font-medium'>{document.title}</div>
+                            {(!document.signatureAreas || document.signatureAreas.length === 0) && (
+                              <AlertTriangle className='h-4 w-4 text-amber-500' />
+                            )}
+                          </div>
                           <div className='text-sm text-gray-500'>{document.fileName}</div>
+                          {(!document.signatureAreas || document.signatureAreas.length === 0) && (
+                            <div className='text-xs text-amber-600 mt-1'>
+                              No signature areas defined
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>{new Date(document.createdAt).toLocaleDateString()}</TableCell>
@@ -208,11 +218,19 @@ export function DocumentsView({ documents, isLoading, onRefresh }: DocumentsView
                 {documents.map((document) => (
                   <div key={document.id} className='border rounded-lg p-4 space-y-3'>
                     <div>
-                      <h3 className='font-medium text-gray-900'>{document.title}</h3>
+                      <div className='flex items-center gap-2'>
+                        <h3 className='font-medium text-gray-900'>{document.title}</h3>
+                        {(!document.signatureAreas || document.signatureAreas.length === 0) && (
+                          <AlertTriangle className='h-4 w-4 text-amber-500' />
+                        )}
+                      </div>
                       <p className='text-sm text-gray-500'>{document.fileName}</p>
                       <p className='text-xs text-gray-400 mt-1'>
                         Created {new Date(document.createdAt).toLocaleDateString()}
                       </p>
+                      {(!document.signatureAreas || document.signatureAreas.length === 0) && (
+                        <p className='text-xs text-amber-600 mt-1'>No signature areas defined</p>
+                      )}
                     </div>
                     <div className='flex gap-2'>
                       <Button

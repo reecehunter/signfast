@@ -230,7 +230,7 @@ export default function SigningPage() {
             </p>
           </div>
           <InteractivePDFSigner
-            pdfUrl={document.fileUrl}
+            pdfUrl={`/api/documents/${document.id}/view`}
             signatureAreas={document.signatureAreas || []}
             signerName={signerName}
             signerDate={signerDate}
@@ -426,7 +426,7 @@ export default function SigningPage() {
           <CardContent>
             <div className='border rounded-lg p-4 bg-white'>
               <iframe
-                src={`${document.fileUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&disableprint=1&disablesave=1&disablecopy=1&disableannotate=1&disableforms=1`}
+                src={`/api/documents/${document.id}/view#toolbar=0&navpanes=0&scrollbar=1&view=FitH&disableprint=1&disablesave=1&disablecopy=1&disableannotate=1&disableforms=1`}
                 className='w-full h-96 border-0'
                 title='Document Preview'
               />

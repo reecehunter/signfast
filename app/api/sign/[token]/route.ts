@@ -3,7 +3,6 @@ import { PrismaClient } from '@prisma/client'
 import { sendCompletionEmail } from '@/lib/email'
 import { createSignedDocument, createFinalMergedDocument } from '@/lib/pdf-utils'
 import { trackSignatureUsage } from '@/lib/billing'
-import { join } from 'path'
 
 const prisma = new PrismaClient()
 
@@ -138,11 +137,7 @@ export async function POST(
     // No need to check signing order - all signers can sign in parallel
 
     // Create signed PDF
-    const originalFilePath = join(
-      process.cwd(),
-      'uploads',
-      signature.document.fileUrl.replace('/uploads/', '')
-    )
+    const originalFileUrlOrPath = signature.document.fileUrl
 
     // Get signature areas for this signer (including areas for all signers)
     const signatureAreas = signature.document.signatureAreas.filter(
@@ -150,7 +145,7 @@ export async function POST(
     )
 
     const signedDocumentUrl = await createSignedDocument(
-      originalFilePath,
+      originalFileUrlOrPath,
       signerName,
       signerDate,
       signature.documentId,
@@ -219,11 +214,7 @@ export async function POST(
 
     if (allSigned) {
       // Create final merged document with all signatures
-      const originalFilePath = join(
-        process.cwd(),
-        'uploads',
-        signature.document.fileUrl.replace('/uploads/', '')
-      )
+      const originalFileUrlOrPath = signature.document.fileUrl
 
       // Prepare signature data for merging
       const signaturesForMerging = updatedSignatures.map((sig) => ({
@@ -237,7 +228,7 @@ export async function POST(
 
       // Create the final merged document
       const finalDocumentUrl = await createFinalMergedDocument(
-        originalFilePath,
+        originalFileUrlOrPath,
         signature.documentId,
         signaturesForMerging,
         signature.document.signatureAreas.map((area) => ({
@@ -259,13 +250,10 @@ export async function POST(
       const document = signature.document
       const completionPromises = []
 
-      // Use the final merged document URL
-      let signedDocumentUrl = finalDocumentUrl
-
-      // Convert relative path to full URL if needed
-      if (signedDocumentUrl.startsWith('/uploads/')) {
-        signedDocumentUrl = `${process.env.NEXTAUTH_URL}${signedDocumentUrl}`
-      }
+      // Extract filename from S3 URL to construct local API endpoint
+      const s3UrlParts = finalDocumentUrl.split('/')
+      const filename = s3UrlParts[s3UrlParts.length - 1]
+      const signedDocumentUrl = `${process.env.NEXTAUTH_URL}/api/signed-documents/${filename}`
 
       // Email to document owner
       if (document.owner.email) {

@@ -206,7 +206,7 @@ export function EditDocumentDialog({
             </p>
           </div>
           <ClientPDFSelector
-            pdfUrl={document.fileUrl}
+            pdfUrl={`/api/documents/${document.id}/view`}
             onAreasSelected={handleSignatureAreasSelected}
             onCancel={handleCancel}
             existingAreas={document.signatureAreas || []}

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
+// @ts-expect-error - NextAuth v4 type definitions issue
+import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { PrismaClient } from '@prisma/client'
-import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
-import { existsSync } from 'fs'
+import { uploadToS3 } from '@/lib/s3'
 
 const prisma = new PrismaClient()
 
@@ -42,28 +42,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File size must be less than 10MB' }, { status: 400 })
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'uploads')
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-
     // Generate unique filename
     const fileExtension = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
-    const filePath = join(uploadsDir, fileName)
-
-    // Save file to local storage (in production, use S3 or similar)
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+
+    // Upload to S3
+    const key = join('documents', String(session.user.id), fileName).replace(/\\/g, '/')
+    const uploaded = await uploadToS3({
+      key,
+      contentType: file.type,
+      body: buffer,
+      cacheControl: 'public, max-age=31536000, immutable',
+      acl: 'private',
+    })
 
     // Save document to database
     const document = await prisma.document.create({
       data: {
         title,
         fileName: file.name,
-        fileUrl: `/uploads/${fileName}`, // In production, this would be the S3 URL
+        fileUrl: uploaded.url,
         fileSize: file.size,
         mimeType: file.type,
         ownerId: session.user.id,

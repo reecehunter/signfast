@@ -161,6 +161,23 @@ To use AWS S3 or similar cloud storage:
 2. Replace local file operations with cloud storage SDK calls
 3. Update file URLs to point to cloud storage
 
+### AWS S3 Configuration
+
+Set the following environment variables in `.env.local` (and in your deployment provider):
+
+```
+AWS_S3_BUCKET=your-bucket-name
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+# Optional: If using CloudFront or custom CDN domain in front of S3
+ASSET_BASE_URL=https://cdn.example.com
+```
+
+- Uploads are stored under keys like `documents/<userId>/<fileName>` and `uploads/signed/<fileName>`.
+- Generated URLs will use `ASSET_BASE_URL` when set; otherwise, they default to the S3 public URL format.
+- Objects are uploaded with `ACL=private`. You can serve via signed URLs or through a CDN origin with appropriate permissions.
+
 ## Deployment
 
 ### Vercel (Recommended)
