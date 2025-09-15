@@ -1,5 +1,5 @@
 import { PDFDocument, rgb } from 'pdf-lib'
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFile, writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { uploadToS3, downloadFromS3, extractS3KeyFromUrl } from '@/lib/s3'
 
@@ -230,16 +230,16 @@ export async function createSignedDocument(
   }[],
   areaData?: { [areaId: string]: { type: string; data: string } }
 ): Promise<string> {
+  // Ensure tmp directory exists
+  const tmpDir = join(process.cwd(), 'tmp')
+  await mkdir(tmpDir, { recursive: true })
+
+  // Generate unique filename for signed document
+  const timestamp = Date.now()
+  const signedFileName = `signed-${documentId}-${timestamp}.pdf`
+  const signedFilePath = join(tmpDir, signedFileName)
+
   try {
-    // Ensure tmp directory exists
-    const tmpDir = join(process.cwd(), 'tmp')
-    await mkdir(tmpDir, { recursive: true })
-
-    // Generate unique filename for signed document
-    const timestamp = Date.now()
-    const signedFileName = `signed-${documentId}-${timestamp}.pdf`
-    const signedFilePath = join(tmpDir, signedFileName)
-
     // Add signature to PDF
     await addSignatureToPDF(
       originalFileUrlOrPath,
@@ -259,9 +259,28 @@ export async function createSignedDocument(
       cacheControl: 'public, max-age=31536000, immutable',
       acl: 'private',
     })
+
+    // Clean up temporary file
+    try {
+      await unlink(signedFilePath)
+      console.log(`Cleaned up temporary file: ${signedFilePath}`)
+    } catch (cleanupError) {
+      console.error('Error cleaning up temporary file:', cleanupError)
+      // Don't throw - the main operation succeeded
+    }
+
     return url
   } catch (error) {
     console.error('Error creating signed document:', error)
+
+    // Clean up temporary file on error
+    try {
+      await unlink(signedFilePath)
+      console.log(`Cleaned up temporary file after error: ${signedFilePath}`)
+    } catch (cleanupError) {
+      console.error('Error cleaning up temporary file after error:', cleanupError)
+    }
+
     throw error
   }
 }
@@ -287,16 +306,16 @@ export async function createFinalMergedDocument(
     signerIndex?: number | null
   }>
 ): Promise<string> {
+  // Ensure tmp directory exists
+  const tmpDir = join(process.cwd(), 'tmp')
+  await mkdir(tmpDir, { recursive: true })
+
+  // Generate unique filename for final merged document
+  const timestamp = Date.now()
+  const finalFileName = `final-${documentId}-${timestamp}.pdf`
+  const finalFilePath = join(tmpDir, finalFileName)
+
   try {
-    // Ensure tmp directory exists
-    const tmpDir = join(process.cwd(), 'tmp')
-    await mkdir(tmpDir, { recursive: true })
-
-    // Generate unique filename for final merged document
-    const timestamp = Date.now()
-    const finalFileName = `final-${documentId}-${timestamp}.pdf`
-    const finalFilePath = join(tmpDir, finalFileName)
-
     // Read the original PDF (supports local temp path or S3 URL)
     let pdfBytes: Buffer
 
@@ -453,10 +472,29 @@ export async function createFinalMergedDocument(
       cacheControl: 'public, max-age=31536000, immutable',
       acl: 'private',
     })
+
+    // Clean up temporary file
+    try {
+      await unlink(finalFilePath)
+      console.log(`Cleaned up temporary file: ${finalFilePath}`)
+    } catch (cleanupError) {
+      console.error('Error cleaning up temporary file:', cleanupError)
+      // Don't throw - the main operation succeeded
+    }
+
     console.log('Final merged PDF created successfully')
     return url
   } catch (error) {
     console.error('Error creating final merged document:', error)
+
+    // Clean up temporary file on error
+    try {
+      await unlink(finalFilePath)
+      console.log(`Cleaned up temporary file after error: ${finalFilePath}`)
+    } catch (cleanupError) {
+      console.error('Error cleaning up temporary file after error:', cleanupError)
+    }
+
     throw error
   }
 }

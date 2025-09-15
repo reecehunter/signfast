@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "cleanup-tmp": "node scripts/cleanup-tmp.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",

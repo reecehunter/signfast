@@ -209,7 +209,10 @@ export function EditDocumentDialog({
             pdfUrl={`/api/documents/${document.id}/view`}
             onAreasSelected={handleSignatureAreasSelected}
             onCancel={handleCancel}
-            existingAreas={document.signatureAreas || []}
+            existingAreas={(document.signatureAreas || []).map((area) => ({
+              ...area,
+              signerIndex: area.signerIndex === null ? undefined : area.signerIndex,
+            }))}
             numberOfSigners={numberOfSigners}
           />
           <div className='flex justify-between'>

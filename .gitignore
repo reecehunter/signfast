@@ -44,3 +44,6 @@ next-env.d.ts
 
 # uploads
 /uploads
+
+# temporary files
+/tmp
