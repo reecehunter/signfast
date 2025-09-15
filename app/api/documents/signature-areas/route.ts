@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { fileUrl, signatureAreas } = await request.json()
+    const { fileUrl, signatureAreas, numberOfSigners } = await request.json()
 
     if (!fileUrl || !signatureAreas || !Array.isArray(signatureAreas)) {
       return NextResponse.json(
@@ -34,8 +34,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Delete existing signature areas for this document
+    // Delete existing signature areas and signatures for this document
     await prisma.signatureArea.deleteMany({
+      where: {
+        documentId: document.id,
+      },
+    })
+
+    await prisma.signature.deleteMany({
       where: {
         documentId: document.id,
       },
@@ -54,10 +60,17 @@ export async function POST(request: NextRequest) {
             height: area.height,
             pageNumber: area.pageNumber || 1,
             label: area.label,
+            signerIndex: area.signerIndex,
           },
         })
       )
     )
+
+    // Update the document with the number of signers
+    await prisma.document.update({
+      where: { id: document.id },
+      data: { numberOfSigners: numberOfSigners || 1 },
+    })
 
     return NextResponse.json({
       message: 'Signature areas saved successfully',

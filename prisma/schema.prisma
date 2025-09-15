@@ -38,17 +38,24 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  password      String?
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  documents     Document[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                      String    @id @default(cuid())
+  name                    String?
+  email                   String    @unique
+  password                String?
+  emailVerified           DateTime?
+  image                   String?
+  accounts                Account[]
+  sessions                Session[]
+  documents               Document[]
+  // Billing fields
+  stripeCustomerId        String?   @unique
+  freeSignaturesRemaining Int       @default(5)
+  subscriptionId          String?   @unique
+  subscriptionStatus      String?   // active, canceled, past_due, etc.
+  planType                String    @default("free") // free, metered, unlimited
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  signatureUsage          SignatureUsage[]
 }
 
 model VerificationToken {
@@ -67,10 +74,13 @@ model Document {
   fileSize    Int
   mimeType    String
   status      String   @default("draft") // draft, sent, signed, completed
+  numberOfSigners Int  @default(1) // Number of signers required for this document
+  finalDocumentUrl String? // URL to the final merged document with all signatures
   ownerId     String
   owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   signatures  Signature[]
   signatureAreas SignatureArea[]
+  signatureUsage SignatureUsage[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -86,6 +96,7 @@ model SignatureArea {
   height     Float    // Height of the area
   pageNumber Int      @default(1) // Page number (1-based)
   label      String?  // Optional label for the area
+  signerIndex Int?    // Which signer this area belongs to (0-based, null for all signers)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -96,11 +107,31 @@ model Signature {
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   signerEmail String
   signerName  String?
+  signerIndex Int     @default(0) // Order of signing (0-based)
+  requestId   String? // Groups signatures sent together in the same request
   signedAt    DateTime?
   signatureData String? // Base64 encoded signature image
   signedDocumentUrl String? // URL to the signed PDF
-  status     String   @default("pending") // pending, signed
+  status     String   @default("pending") // pending, signed, deleted
   token      String   @unique @default(cuid()) // For secure signing links
+  signatureUsage SignatureUsage[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model SignatureUsage {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  signatureId String
+  signature  Signature @relation(fields: [signatureId], references: [id], onDelete: Cascade)
+  timestamp  DateTime @default(now())
+  billed     Boolean  @default(false) // Whether this usage has been billed to Stripe
+  stripeUsageRecordId String? // Stripe usage record ID for tracking
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([signatureId]) // Each signature can only be counted once
 }

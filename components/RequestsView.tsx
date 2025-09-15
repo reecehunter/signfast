@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Send, Plus, Clock, FileText } from 'lucide-react'
+import { Send, Plus, Clock, FileText, Trash2 } from 'lucide-react'
 import { SendDocumentDialog } from '@/components/SendDocumentDialog'
 
 interface Document {
@@ -29,11 +29,14 @@ interface Document {
   fileName: string
   fileUrl: string
   status: string
+  numberOfSigners: number
   createdAt: string
   signatures: Array<{
     id: string
     signerEmail: string
     signerName?: string
+    signerIndex: number
+    requestId?: string
     status: string
     signedAt: string | null
     createdAt: string
@@ -50,20 +53,6 @@ interface Document {
   }>
 }
 
-interface SignatureRequest {
-  id: string
-  documentId: string
-  documentTitle: string
-  documentFileName: string
-  documentFileUrl: string
-  documentCreatedAt: string
-  signerEmail: string
-  signerName?: string
-  status: string
-  signedAt: string | null
-  signatureCreatedAt: string
-}
-
 interface RequestsViewProps {
   documents: Document[]
   isLoading: boolean
@@ -74,31 +63,73 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
   const [showNewRequestDialog, setShowNewRequestDialog] = useState(false)
   const [showSendDialog, setShowSendDialog] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
+  const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null)
 
   // Filter documents that have been sent for signature (have signatures)
   const sentDocuments = documents.filter((doc) => doc.signatures.length > 0)
 
-  // Flatten signatures into individual rows for the table and filter out completed ones
-  const signatureRequests: SignatureRequest[] = sentDocuments
-    .flatMap((document) =>
-      document.signatures.map((signature) => ({
+  // Group signatures by requestId to show requests with multiple signers together
+  const requestGroups = new Map<
+    string,
+    {
+      requestId: string
+      documentId: string
+      documentTitle: string
+      documentFileName: string
+      documentFileUrl: string
+      documentCreatedAt: string
+      signatures: Array<{
+        id: string
+        signerEmail: string
+        signerName?: string
+        signerIndex: number
+        status: string
+        signedAt: string | null
+        signatureCreatedAt: string
+      }>
+    }
+  >()
+
+  sentDocuments.forEach((document) => {
+    document.signatures.forEach((signature) => {
+      const requestId = signature.requestId || signature.id // fallback to signature.id for existing records
+
+      if (!requestGroups.has(requestId)) {
+        requestGroups.set(requestId, {
+          requestId,
+          documentId: document.id,
+          documentTitle: document.title,
+          documentFileName: document.fileName,
+          documentFileUrl: document.fileUrl,
+          documentCreatedAt: document.createdAt,
+          signatures: [],
+        })
+      }
+
+      requestGroups.get(requestId)!.signatures.push({
         id: signature.id,
-        documentId: document.id,
-        documentTitle: document.title,
-        documentFileName: document.fileName,
-        documentFileUrl: document.fileUrl,
-        documentCreatedAt: document.createdAt,
         signerEmail: signature.signerEmail,
         signerName: signature.signerName,
+        signerIndex: signature.signerIndex,
         status: signature.status,
         signedAt: signature.signedAt,
         signatureCreatedAt: signature.createdAt,
-      }))
-    )
-    .filter((request) => request.status !== 'signed' && request.status !== 'completed')
-    .sort(
-      (a, b) => new Date(b.signatureCreatedAt).getTime() - new Date(a.signatureCreatedAt).getTime()
-    )
+      })
+    })
+  })
+
+  // Filter to only show requests that have pending signatures
+  const signatureRequests = Array.from(requestGroups.values())
+    .filter((group) => group.signatures.some((sig) => sig.status !== 'signed'))
+    .sort((a, b) => {
+      const aLatestSignature = Math.max(
+        ...a.signatures.map((sig) => new Date(sig.signatureCreatedAt).getTime())
+      )
+      const bLatestSignature = Math.max(
+        ...b.signatures.map((sig) => new Date(sig.signatureCreatedAt).getTime())
+      )
+      return bLatestSignature - aLatestSignature
+    })
 
   // Filter documents that are available to send (draft status or any status - documents are reusable)
   const availableDocuments = documents.filter(
@@ -111,18 +142,32 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
     setShowNewRequestDialog(false)
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant='secondary'>Pending</Badge>
-      case 'sent':
-        return <Badge variant='default'>Sent</Badge>
-      case 'signed':
-        return <Badge variant='default'>Signed</Badge>
-      case 'completed':
-        return <Badge variant='default'>Completed</Badge>
-      default:
-        return <Badge variant='outline'>{status}</Badge>
+  const handleDeleteRequest = async (requestId: string) => {
+    if (
+      !confirm(
+        'Are you sure you want to delete this signature request? This action cannot be undone.'
+      )
+    ) {
+      return
+    }
+
+    setDeletingRequestId(requestId)
+    try {
+      const response = await fetch(`/api/signature-requests/${requestId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        onRefresh() // Refresh the list
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to delete signature request')
+      }
+    } catch (error) {
+      console.error('Error deleting signature request:', error)
+      alert('Failed to delete signature request')
+    } finally {
+      setDeletingRequestId(null)
     }
   }
 
@@ -152,12 +197,6 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
 
       {/* Active Requests */}
       <Card>
-        <CardHeader>
-          <CardTitle>Active Requests</CardTitle>
-          <CardDescription>
-            Documents sent for signature that are pending completion
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           {signatureRequests.length === 0 ? (
             <div className='text-center py-8'>
@@ -176,39 +215,102 @@ export function RequestsView({ documents, isLoading, onRefresh }: RequestsViewPr
               <TableHeader>
                 <TableRow>
                   <TableHead>Document</TableHead>
-                  <TableHead>Recipient</TableHead>
+                  <TableHead>Recipients</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Sent Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {signatureRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell className='font-medium'>{request.documentTitle}</TableCell>
-                    <TableCell>
-                      <div className='text-sm'>
-                        <div className='font-medium'>
-                          {request.signerName || request.signerEmail}
+                {signatureRequests.map((request) => {
+                  const pendingSignatures = request.signatures.filter(
+                    (sig) => sig.status !== 'signed'
+                  )
+                  const completedSignatures = request.signatures.filter(
+                    (sig) => sig.status === 'signed'
+                  )
+                  const allSigned =
+                    request.signatures.length > 0 &&
+                    request.signatures.every((sig) => sig.status === 'signed')
+
+                  return (
+                    <TableRow key={request.requestId}>
+                      <TableCell className='font-medium'>
+                        <div className='flex flex-col items-start'>
+                          <div className='font-medium'>{request.documentTitle}</div>
+                          <div className='text-sm text-gray-500'>{request.documentFileName}</div>
                         </div>
-                        <div className='text-gray-500'>{request.signerEmail}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(request.status)}</TableCell>
-                    <TableCell>
-                      {new Date(request.documentCreatedAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className='text-sm text-gray-500'>
-                        {request.status === 'signed' ? (
-                          <span className='text-green-600'>Completed</span>
-                        ) : (
-                          <span className='text-yellow-600'>Pending</span>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        <div className='space-y-1'>
+                          {request.signatures
+                            .sort((a, b) => a.signerIndex - b.signerIndex)
+                            .map((signature) => (
+                              <div key={signature.id} className='text-sm'>
+                                <div className='flex items-center space-x-2'>
+                                  <div
+                                    className={`w-2 h-2 rounded-full ${
+                                      signature.status === 'signed'
+                                        ? 'bg-green-500'
+                                        : 'bg-yellow-500'
+                                    }`}
+                                  />
+                                  <div>
+                                    <div className='font-medium'>
+                                      {signature.signerName || signature.signerEmail}
+                                    </div>
+                                    <div className='text-gray-500 text-xs'>
+                                      {signature.signerEmail}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className='text-sm'>
+                          {allSigned ? (
+                            <Badge variant='default' className='bg-green-600'>
+                              Completed
+                            </Badge>
+                          ) : (
+                            <Badge variant='secondary'>
+                              {completedSignatures.length}/{request.signatures.length} signed
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(request.documentCreatedAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className='flex items-center space-x-2'>
+                          <div className='text-sm text-gray-500'>
+                            {allSigned ? (
+                              <span className='text-green-600'>All signed</span>
+                            ) : (
+                              <span className='text-yellow-600'>
+                                {pendingSignatures.length} pending
+                              </span>
+                            )}
+                          </div>
+                          {!allSigned && (
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => handleDeleteRequest(request.requestId)}
+                              disabled={deletingRequestId === request.requestId}
+                              className='text-red-600 hover:text-red-700 hover:bg-red-50'
+                            >
+                              <Trash2 className='h-4 w-4' />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}

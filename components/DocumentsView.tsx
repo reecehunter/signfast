@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -24,7 +25,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Upload, FileText, Trash2, Edit } from 'lucide-react'
 import { DocumentUploadDialog } from '@/components/DocumentUploadDialog'
-import { EditDocumentDialog } from '@/components/EditDocumentDialog'
 
 interface Document {
   id: string
@@ -32,10 +32,13 @@ interface Document {
   fileName: string
   fileUrl: string
   status: string
+  numberOfSigners: number
   createdAt: string
   signatures: Array<{
     id: string
     signerEmail: string
+    signerName?: string
+    signerIndex: number
     status: string
     signedAt: string | null
   }>
@@ -58,13 +61,11 @@ interface DocumentsViewProps {
 }
 
 export function DocumentsView({ documents, isLoading, onRefresh }: DocumentsViewProps) {
+  const router = useRouter()
   const [showUploadDialog, setShowUploadDialog] = useState(false)
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
 
   const handleEditDocument = (document: Document) => {
-    setSelectedDocument(document)
-    setShowEditDialog(true)
+    router.push(`/dashboard/document/${document.id}/edit`)
   }
 
   const handleDeleteDocument = async (documentId: string) => {
@@ -125,10 +126,6 @@ export function DocumentsView({ documents, isLoading, onRefresh }: DocumentsView
         </Card>
       ) : (
         <Card>
-          <CardHeader>
-            <CardTitle>All Documents</CardTitle>
-            <CardDescription>View and manage your uploaded documents</CardDescription>
-          </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
@@ -141,7 +138,12 @@ export function DocumentsView({ documents, isLoading, onRefresh }: DocumentsView
               <TableBody>
                 {documents.map((document) => (
                   <TableRow key={document.id}>
-                    <TableCell className='font-medium'>{document.title}</TableCell>
+                    <TableCell className='font-medium'>
+                      <div className='flex flex-col items-start'>
+                        <div className='font-medium'>{document.title}</div>
+                        <div className='text-sm text-gray-500'>{document.fileName}</div>
+                      </div>
+                    </TableCell>
                     <TableCell>{new Date(document.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <div className='flex space-x-2'>
@@ -204,13 +206,6 @@ export function DocumentsView({ documents, isLoading, onRefresh }: DocumentsView
         open={showUploadDialog}
         onOpenChange={setShowUploadDialog}
         onDocumentUploaded={onRefresh}
-      />
-
-      <EditDocumentDialog
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        document={selectedDocument}
-        onDocumentEdited={onRefresh}
       />
     </div>
   )

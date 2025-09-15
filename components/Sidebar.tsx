@@ -4,10 +4,11 @@ import React from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { FileText, Send, CheckCircle, Menu, X, LogOut } from 'lucide-react'
+import { FileText, Send, CheckCircle, Menu, X, LogOut, CreditCard } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import { Logo } from '@/components/Logo'
 
-export type SidebarView = 'documents' | 'requests' | 'completed'
+export type SidebarView = 'documents' | 'requests' | 'completed' | 'billing'
 
 interface SidebarProps {
   userName?: string
@@ -34,6 +35,12 @@ const navigationItems = [
     icon: CheckCircle,
     path: '/dashboard/completed',
   },
+  {
+    id: 'billing' as SidebarView,
+    label: 'Billing',
+    icon: CreditCard,
+    path: '/dashboard/billing',
+  },
 ]
 
 export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps) {
@@ -51,6 +58,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
   const getCurrentView = (): SidebarView => {
     if (pathname.includes('/dashboard/requests')) return 'requests'
     if (pathname.includes('/dashboard/completed')) return 'completed'
+    if (pathname.includes('/dashboard/billing')) return 'billing'
     return 'documents' // default to documents
   }
 
@@ -66,6 +74,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
         <div className='flex items-center justify-between'>
           {!isCollapsed && (
             <div className='flex items-center space-x-2'>
+              <Logo size='sm' />
               <h1 className='text-lg font-semibold text-gray-900'>SignFast</h1>
             </div>
           )}

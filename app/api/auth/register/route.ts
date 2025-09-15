@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { createStripeCustomer, createSubscription, STRIPE_CONFIG } from '@/lib/stripe'
 
 const prisma = new PrismaClient()
 
@@ -20,12 +21,36 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
+    // Create Stripe customer
+    let stripeCustomerId: string | null = null
+    let subscriptionId: string | null = null
+
+    try {
+      const stripeCustomer = await createStripeCustomer(email, name)
+      stripeCustomerId = stripeCustomer.id
+
+      // Create a metered subscription for pay-per-signature billing
+      const subscription = await createSubscription(
+        stripeCustomerId,
+        STRIPE_CONFIG.METERED_PRICE_ID
+      )
+      subscriptionId = subscription.id
+    } catch (stripeError) {
+      console.error('Stripe customer creation failed:', stripeError)
+      // Continue with user creation even if Stripe fails
+    }
+
     // Create user
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
+        stripeCustomerId,
+        subscriptionId,
+        subscriptionStatus: subscriptionId ? 'incomplete' : null,
+        planType: 'free', // Start with free plan
+        freeSignaturesRemaining: 5,
       },
     })
 

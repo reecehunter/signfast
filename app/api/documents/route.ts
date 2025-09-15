@@ -18,7 +18,14 @@ export async function GET() {
         ownerId: session.user.id,
       },
       include: {
-        signatures: true,
+        signatures: {
+          where: {
+            status: {
+              not: 'deleted',
+            },
+          },
+        },
+        signatureAreas: true,
       },
       orderBy: {
         createdAt: 'desc',

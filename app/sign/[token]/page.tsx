@@ -20,6 +20,7 @@ interface DocumentData {
     id: string
     signerEmail: string
     signerName: string
+    signerIndex: number
     status: string
     signedAt: string | null
   }>
@@ -32,13 +33,20 @@ interface DocumentData {
     height: number
     pageNumber: number
     label?: string
+    signerIndex?: number | null
   }>
   currentSignature?: {
     id: string
     status: string
     signerEmail: string
     signerName: string
+    signerIndex: number
     signedAt: string | null
+  }
+  signingInfo?: {
+    currentSignerIndex: number
+    totalSigners: number
+    isLastSigner: boolean
   }
 }
 
@@ -61,9 +69,11 @@ export default function SigningPage() {
       if (response.ok) {
         const data = await response.json()
         setDocument(data)
-        if (data.signerName) {
-          setSignerName(data.signerName)
+        if (data.currentSignature?.signerName) {
+          setSignerName(data.currentSignature.signerName)
         }
+      } else if (response.status === 410) {
+        setError('This signature request has been deleted')
       } else {
         setError('Document not found or link has expired')
       }
@@ -78,13 +88,35 @@ export default function SigningPage() {
     if (token) {
       fetchDocument()
     }
-    // Set current date as default
-    setSignerDate(new Date().toLocaleDateString())
   }, [token, fetchDocument])
+
+  // Set current date as default when document loads and has date signature areas
+  useEffect(() => {
+    if (document?.signatureAreas?.some((area) => area.type === 'date')) {
+      setSignerDate(new Date().toLocaleDateString())
+    }
+  }, [document])
+
+  const isFormValid = () => {
+    if (!document) return false
+
+    const hasNameAreas = document.signatureAreas.some((area) => area.type === 'name')
+    const hasDateAreas = document.signatureAreas.some((area) => area.type === 'date')
+    const hasBusinessAreas = document.signatureAreas.some((area) => area.type === 'business')
+
+    // If there are no areas requiring form input, form is valid
+    if (!hasNameAreas && !hasDateAreas && !hasBusinessAreas) return true
+
+    if (hasNameAreas && !signerName) return false
+    if (hasDateAreas && !signerDate) return false
+    if (hasBusinessAreas && !businessName) return false
+
+    return true
+  }
 
   const handleSign = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!document || !signerName || !signerDate) return
+    if (!document || !isFormValid()) return
 
     setShowSignatureCapture(true)
   }
@@ -140,13 +172,18 @@ export default function SigningPage() {
   }
 
   if (error) {
+    const isDeleted = error === 'This signature request has been deleted'
     return (
       <div className='min-h-screen flex items-center justify-center bg-gray-50'>
         <Card className='w-full max-w-md'>
           <CardContent className='flex flex-col items-center justify-center py-12'>
             <AlertCircle className='h-12 w-12 text-red-500 mb-4' />
-            <h3 className='text-lg font-medium text-gray-900 mb-2'>Error</h3>
-            <p className='text-gray-500 text-center'>{error}</p>
+            <h3 className='text-lg font-medium text-gray-900 mb-2'>
+              {isDeleted ? 'Signature Request Deleted' : 'Error'}
+            </h3>
+            <p className='text-gray-500 text-center'>
+              {isDeleted ? 'This signature request was either deleted or does not exist.' : error}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -154,6 +191,9 @@ export default function SigningPage() {
   }
 
   if (success) {
+    // Check if all signers have signed
+    const allSignersSigned = document?.signatures.every((sig) => sig.status === 'signed') ?? false
+
     return (
       <div className='min-h-screen flex items-center justify-center bg-gray-50'>
         <Card className='w-full max-w-md'>
@@ -163,7 +203,9 @@ export default function SigningPage() {
               Document Signed Successfully!
             </h3>
             <p className='text-gray-500 text-center'>
-              Thank you for signing the document. All parties have been notified.
+              {allSignersSigned
+                ? 'Thank you for signing the document. All parties have been notified and the document is now complete.'
+                : 'Thank you for signing the document. All parties will receive the completed document once all recipients have signed it.'}
             </p>
           </CardContent>
         </Card>
@@ -309,44 +351,65 @@ export default function SigningPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSign} className='space-y-4'>
-                  <div className='space-y-2'>
-                    <Label htmlFor='signerName'>Your Full Name *</Label>
-                    <Input
-                      id='signerName'
-                      value={signerName}
-                      onChange={(e) => setSignerName(e.target.value)}
-                      placeholder='Enter your full name'
-                      required
-                      disabled={isSigning}
-                    />
-                  </div>
-                  <div className='space-y-2'>
-                    <Label htmlFor='signerDate'>Date *</Label>
-                    <Input
-                      id='signerDate'
-                      value={signerDate}
-                      onChange={(e) => setSignerDate(e.target.value)}
-                      placeholder='Enter the date'
-                      required
-                      disabled={isSigning}
-                    />
-                  </div>
-                  <div className='space-y-2'>
-                    <Label htmlFor='businessName'>Business Name</Label>
-                    <Input
-                      id='businessName'
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      placeholder='Enter business name (optional)'
-                      disabled={isSigning}
-                    />
-                  </div>
+                  {/* Only show name field if there are name signature areas */}
+                  {document.signatureAreas.some((area) => area.type === 'name') && (
+                    <div className='space-y-2'>
+                      <Label htmlFor='signerName'>Your Full Name *</Label>
+                      <Input
+                        id='signerName'
+                        value={signerName}
+                        onChange={(e) => setSignerName(e.target.value)}
+                        placeholder='Enter your full name'
+                        required
+                        disabled={isSigning}
+                      />
+                    </div>
+                  )}
+
+                  {/* Only show date field if there are date signature areas */}
+                  {document.signatureAreas.some((area) => area.type === 'date') && (
+                    <div className='space-y-2'>
+                      <Label htmlFor='signerDate'>Date *</Label>
+                      <Input
+                        id='signerDate'
+                        value={signerDate}
+                        onChange={(e) => setSignerDate(e.target.value)}
+                        placeholder='Enter the date'
+                        required
+                        disabled={isSigning}
+                      />
+                    </div>
+                  )}
+
+                  {/* Only show business name field if there are business signature areas */}
+                  {document.signatureAreas.some((area) => area.type === 'business') && (
+                    <div className='space-y-2'>
+                      <Label htmlFor='businessName'>Business Name *</Label>
+                      <Input
+                        id='businessName'
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder='Enter business name'
+                        required
+                        disabled={isSigning}
+                      />
+                    </div>
+                  )}
+
+                  {/* Show message if no form fields are needed */}
+                  {!document.signatureAreas.some((area) =>
+                    ['name', 'date', 'business'].includes(area.type)
+                  ) && (
+                    <div className='p-4 bg-blue-50 rounded-lg'>
+                      <p className='text-sm text-blue-700'>
+                        This document only requires your signature. Click &quot;Continue to
+                        Sign&quot; to proceed.
+                      </p>
+                    </div>
+                  )}
+
                   {error && <div className='text-red-600 text-sm'>{error}</div>}
-                  <Button
-                    type='submit'
-                    className='w-full'
-                    disabled={!signerName || !signerDate || isSigning}
-                  >
+                  <Button type='submit' className='w-full' disabled={isSigning || !isFormValid()}>
                     {isSigning ? 'Processing...' : 'Continue to Sign'}
                   </Button>
                 </form>

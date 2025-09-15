@@ -14,13 +14,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { documentId, signerEmail, signerName } = await request.json()
+    const { documentId, signers } = await request.json()
 
-    if (!documentId || !signerEmail) {
-      return NextResponse.json(
-        { error: 'Document ID and signer email are required' },
-        { status: 400 }
-      )
+    if (!documentId) {
+      return NextResponse.json({ error: 'Document ID is required' }, { status: 400 })
+    }
+
+    if (!signers || !Array.isArray(signers) || signers.length === 0) {
+      return NextResponse.json({ error: 'Signers array is required' }, { status: 400 })
     }
 
     // Verify document ownership
@@ -38,35 +39,57 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Documents can be reused for multiple signature requests
-    // No need to check for existing signatures
-
-    // Create signature record
-    const signature = await prisma.signature.create({
-      data: {
-        documentId,
-        signerEmail,
-        signerName: signerName || null,
-        status: 'pending',
-      },
-    })
-
-    // Update document status to "sent" if it's still "draft"
-    if (document.status === 'draft') {
-      await prisma.document.update({
-        where: { id: documentId },
-        data: { status: 'sent' },
-      })
+    // Validate signer count matches document configuration
+    if (signers.length !== document.numberOfSigners) {
+      return NextResponse.json(
+        {
+          error: `Document requires exactly ${document.numberOfSigners} signers, but ${signers.length} were provided`,
+        },
+        { status: 400 }
+      )
     }
 
-    // Send signing email
-    try {
-      await sendSigningEmail({
-        to: signerEmail,
-        signerName: signerName || 'Signer',
+    // Generate a single requestId for all signatures in this request
+    const requestId = crypto.randomUUID()
+
+    // Create signature records for all signers
+    const createdSignatures = await Promise.all(
+      signers.map((signer: { email: string; name: string }, index: number) =>
+        prisma.signature.create({
+          data: {
+            documentId,
+            signerEmail: signer.email,
+            signerName: signer.name || null,
+            signerIndex: index,
+            requestId,
+            status: 'pending',
+          },
+        })
+      )
+    )
+
+    // Update document status to "sent"
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { status: 'sent' },
+    })
+
+    // Send signing emails to all signers simultaneously
+    const emailPromises = createdSignatures.map((signature) =>
+      sendSigningEmail({
+        to: signature.signerEmail,
+        signerName: signature.signerName || 'Signer',
         documentTitle: document.title,
         signingUrl: `${process.env.NEXTAUTH_URL}/sign/${signature.token}`,
+      }).catch((emailError) => {
+        console.error(`Email sending failed for ${signature.signerEmail}:`, emailError)
+        // Don't fail the request if individual emails fail
       })
+    )
+
+    // Send all emails (don't fail if email sending fails)
+    try {
+      await Promise.allSettled(emailPromises)
     } catch (emailError) {
       console.error('Email sending failed:', emailError)
       // Don't fail the request if email fails
@@ -74,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Document sent for signature successfully',
-      signature,
+      signatures: createdSignatures,
     })
   } catch (error) {
     console.error('Send document error:', error)

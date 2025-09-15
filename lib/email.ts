@@ -23,7 +23,7 @@ export async function sendSigningEmail({
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'SignFast <onboarding@resend.dev>',
+      from: 'SignFast <requests@signfa.st>',
       to: [to],
       subject: `eSignature Request: ${documentTitle}`,
       html: `
@@ -84,7 +84,7 @@ export async function sendCompletionEmail({
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'SignFast <onboarding@resend.dev>',
+      from: 'SignFast <requests@signfa.st>',
       to: [to],
       subject: `Document Signed: ${documentTitle}`,
       html: `

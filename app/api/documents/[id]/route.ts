@@ -7,6 +7,39 @@ import { join } from 'path'
 
 const prisma = new PrismaClient()
 
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { id } = await params
+
+    // Find the document and verify ownership
+    const document = await prisma.document.findFirst({
+      where: {
+        id,
+        ownerId: session.user.id,
+      },
+      include: {
+        signatures: true,
+        signatureAreas: true,
+      },
+    })
+
+    if (!document) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ document })
+  } catch (error) {
+    console.error('Get document error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

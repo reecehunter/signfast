@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -20,11 +20,15 @@ interface Document {
   fileName: string
   fileUrl: string
   status: string
+  numberOfSigners: number
+  finalDocumentUrl?: string
   createdAt: string
   signatures: Array<{
     id: string
     signerEmail: string
     signerName?: string
+    signerIndex: number
+    requestId?: string
     status: string
     signedAt: string | null
     signedDocumentUrl?: string
@@ -41,19 +45,6 @@ interface Document {
   }>
 }
 
-interface CompletedSignature {
-  id: string
-  documentId: string
-  documentTitle: string
-  documentFileName: string
-  documentFileUrl: string
-  signerEmail: string
-  signerName?: string
-  status: string
-  signedAt: string | null
-  signedDocumentUrl?: string
-}
-
 interface CompletedViewProps {
   documents: Document[]
   isLoading: boolean
@@ -67,25 +58,82 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
       doc.signatures.every((signature) => signature.status === 'signed')
   )
 
-  // Flatten signatures into individual rows for the table
-  const completedSignatures: CompletedSignature[] = completedDocuments
-    .flatMap((document) =>
-      document.signatures.map((signature) => ({
+  // Group completed signatures by requestId
+  const requestGroups = new Map<
+    string,
+    {
+      requestId: string
+      documentId: string
+      documentTitle: string
+      documentFileName: string
+      documentFileUrl: string
+      finalDocumentUrl?: string
+      signatures: Array<{
+        id: string
+        signerEmail: string
+        signerName?: string
+        signerIndex: number
+        status: string
+        signedAt: string | null
+        signedDocumentUrl?: string
+      }>
+    }
+  >()
+
+  completedDocuments.forEach((document) => {
+    document.signatures.forEach((signature) => {
+      const requestId = signature.requestId || signature.id // fallback to signature.id for existing records
+
+      if (!requestGroups.has(requestId)) {
+        requestGroups.set(requestId, {
+          requestId,
+          documentId: document.id,
+          documentTitle: document.title,
+          documentFileName: document.fileName,
+          documentFileUrl: document.fileUrl,
+          finalDocumentUrl: document.finalDocumentUrl,
+          signatures: [],
+        })
+      }
+
+      requestGroups.get(requestId)!.signatures.push({
         id: signature.id,
-        documentId: document.id,
-        documentTitle: document.title,
-        documentFileName: document.fileName,
-        documentFileUrl: document.fileUrl,
         signerEmail: signature.signerEmail,
         signerName: signature.signerName,
+        signerIndex: signature.signerIndex,
         status: signature.status,
         signedAt: signature.signedAt,
         signedDocumentUrl: signature.signedDocumentUrl,
-      }))
-    )
-    .sort((a, b) => new Date(b.signedAt || '').getTime() - new Date(a.signedAt || '').getTime())
+      })
+    })
+  })
 
-  const handleDownloadSigned = async (signature: CompletedSignature) => {
+  const completedSignatures = Array.from(requestGroups.values()).sort((a, b) => {
+    const aLatestSignature = Math.max(
+      ...a.signatures.map((sig) => new Date(sig.signedAt || '').getTime())
+    )
+    const bLatestSignature = Math.max(
+      ...b.signatures.map((sig) => new Date(sig.signedAt || '').getTime())
+    )
+    return bLatestSignature - aLatestSignature
+  })
+
+  const handleDownloadSigned = async (request: {
+    documentId: string
+    documentTitle: string
+    documentFileName: string
+    documentFileUrl: string
+    finalDocumentUrl?: string
+    signatures: Array<{
+      id: string
+      signerEmail: string
+      signerName?: string
+      signerIndex: number
+      status: string
+      signedAt: string | null
+      signedDocumentUrl?: string
+    }>
+  }) => {
     try {
       // Check if we're in a browser environment
       if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -93,8 +141,8 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
         return
       }
 
-      // Use the signed document URL from the signature
-      const signedUrl = signature.signedDocumentUrl
+      // Use the final merged document URL if available, otherwise fall back to individual signed document
+      const signedUrl = request.finalDocumentUrl || request.signatures[0]?.signedDocumentUrl
       if (signedUrl) {
         // Extract the filename from the signed document URL path
         const fileName = signedUrl.split('/').pop()
@@ -102,7 +150,7 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
           // Use the signed documents API endpoint for download
           const link = document.createElement('a')
           link.href = `/api/signed-documents/${fileName}`
-          link.download = `signed-${signature.documentFileName}`
+          link.download = `signed-${request.documentFileName}`
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
@@ -110,8 +158,8 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
       } else {
         // Fallback to original document if no signed version
         const link = document.createElement('a')
-        link.href = signature.documentFileUrl
-        link.download = signature.documentFileName
+        link.href = request.documentFileUrl
+        link.download = request.documentFileName
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -122,15 +170,30 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
     }
   }
 
-  const handleViewDocument = (signature: CompletedSignature) => {
+  const handleViewDocument = (request: {
+    documentId: string
+    documentTitle: string
+    documentFileName: string
+    documentFileUrl: string
+    finalDocumentUrl?: string
+    signatures: Array<{
+      id: string
+      signerEmail: string
+      signerName?: string
+      signerIndex: number
+      status: string
+      signedAt: string | null
+      signedDocumentUrl?: string
+    }>
+  }) => {
     // Check if we're in a browser environment
     if (typeof window === 'undefined') {
       console.error('View document function called in non-browser environment')
       return
     }
 
-    // Open the signed document in a new tab
-    const signedUrl = signature.signedDocumentUrl
+    // Use the final merged document URL if available, otherwise fall back to individual signed document
+    const signedUrl = request.finalDocumentUrl || request.signatures[0]?.signedDocumentUrl
     if (signedUrl) {
       // Extract the filename from the signed document URL path
       const fileName = signedUrl.split('/').pop()
@@ -140,7 +203,7 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
       }
     } else {
       // Fallback to original document if no signed version
-      window.open(signature.documentFileUrl, '_blank')
+      window.open(request.documentFileUrl, '_blank')
     }
   }
 
@@ -180,49 +243,61 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
         </Card>
       ) : (
         <Card>
-          <CardHeader>
-            <CardTitle>Completed Documents</CardTitle>
-            <CardDescription>
-              All documents that have been fully signed by all recipients
-            </CardDescription>
-          </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Document</TableHead>
-                  <TableHead>Signer</TableHead>
+                  <TableHead>Signers</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Completed Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {completedSignatures.map((signature) => (
-                  <TableRow key={signature.id}>
-                    <TableCell className='font-medium'>{signature.documentTitle}</TableCell>
+                {completedSignatures.map((request) => (
+                  <TableRow key={request.requestId}>
+                    <TableCell className='font-medium'>
+                      <div className='flex flex-col items-start'>
+                        <div className='font-medium'>{request.documentTitle}</div>
+                        <div className='text-sm text-gray-500'>{request.documentFileName}</div>
+                      </div>
+                    </TableCell>
                     <TableCell>
-                      <div className='text-sm'>
-                        <div className='font-medium'>
-                          {signature.signerName || signature.signerEmail}
-                        </div>
-                        <div className='text-gray-500'>{signature.signerEmail}</div>
+                      <div className='space-y-1'>
+                        {request.signatures
+                          .sort((a, b) => a.signerIndex - b.signerIndex)
+                          .map((signature) => (
+                            <div key={signature.id} className='text-sm'>
+                              <div className='flex items-center space-x-2'>
+                                <div className='w-2 h-2 rounded-full bg-green-500' />
+                                <div>
+                                  <div className='font-medium'>
+                                    {signature.signerName || signature.signerEmail}
+                                  </div>
+                                  <div className='text-gray-500 text-xs'>
+                                    {signature.signerEmail}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant='default' className='bg-green-100 text-green-800'>
                         <CheckCircle className='h-3 w-3 mr-1' />
-                        Signed
+                        All Signed
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {signature.signedAt ? (
+                      {request.signatures[0]?.signedAt ? (
                         <div className='text-sm'>
                           <div className='font-medium'>
-                            {new Date(signature.signedAt).toLocaleDateString()}
+                            {new Date(request.signatures[0].signedAt).toLocaleDateString()}
                           </div>
                           <div className='text-gray-500'>
-                            {new Date(signature.signedAt).toLocaleTimeString()}
+                            {new Date(request.signatures[0].signedAt).toLocaleTimeString()}
                           </div>
                         </div>
                       ) : (
@@ -234,7 +309,7 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
                         <Button
                           variant='outline'
                           size='sm'
-                          onClick={() => handleViewDocument(signature)}
+                          onClick={() => handleViewDocument(request)}
                         >
                           <Eye className='h-4 w-4 mr-2' />
                           View
@@ -242,7 +317,7 @@ export function CompletedView({ documents, isLoading }: CompletedViewProps) {
                         <Button
                           variant='outline'
                           size='sm'
-                          onClick={() => handleDownloadSigned(signature)}
+                          onClick={() => handleDownloadSigned(request)}
                         >
                           <Download className='h-4 w-4 mr-2' />
                           Download

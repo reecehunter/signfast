@@ -12,10 +12,13 @@ interface Document {
   fileName: string
   fileUrl: string
   status: string
+  numberOfSigners: number
   createdAt: string
   signatures: Array<{
     id: string
     signerEmail: string
+    signerName?: string
+    signerIndex: number
     status: string
     signedAt: string | null
   }>

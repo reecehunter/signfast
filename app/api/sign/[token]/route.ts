@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { sendCompletionEmail } from '@/lib/email'
-import { createSignedDocument } from '@/lib/pdf-utils'
+import { createSignedDocument, createFinalMergedDocument } from '@/lib/pdf-utils'
+import { trackSignatureUsage } from '@/lib/billing'
 import { join } from 'path'
 
 const prisma = new PrismaClient()
@@ -23,8 +24,13 @@ export async function GET(
                 id: true,
                 signerEmail: true,
                 signerName: true,
+                signerIndex: true,
                 status: true,
                 signedAt: true,
+                requestId: true,
+              },
+              orderBy: {
+                signerIndex: 'asc',
               },
             },
             signatureAreas: true,
@@ -37,15 +43,42 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid or expired signing link' }, { status: 404 })
     }
 
+    if (signature.status === 'deleted') {
+      return NextResponse.json(
+        { error: 'This signature request has been deleted' },
+        { status: 410 }
+      )
+    }
+
+    // No need to check signing order - all signers can sign in parallel
+
+    // Filter signatures to only include those from the same request
+    const requestSignatures = signature.document.signatures.filter(
+      (sig) => sig.requestId === signature.requestId
+    )
+
+    // Filter signature areas to only show areas for this signer or areas for all signers
+    const relevantAreas = signature.document.signatureAreas.filter(
+      (area) => area.signerIndex === null || area.signerIndex === signature.signerIndex
+    )
+
     // Return document data with signature status for this specific token
     return NextResponse.json({
       ...signature.document,
+      signatures: requestSignatures, // Only return signatures from the same request
+      signatureAreas: relevantAreas,
       currentSignature: {
         id: signature.id,
         status: signature.status,
         signerEmail: signature.signerEmail,
         signerName: signature.signerName,
+        signerIndex: signature.signerIndex,
         signedAt: signature.signedAt,
+      },
+      signingInfo: {
+        currentSignerIndex: signature.signerIndex,
+        totalSigners: requestSignatures.length, // Use request-specific signature count
+        isLastSigner: signature.signerIndex === requestSignatures.length - 1,
       },
     })
   } catch (error) {
@@ -76,7 +109,11 @@ export async function POST(
         document: {
           include: {
             owner: true,
-            signatures: true,
+            signatures: {
+              orderBy: {
+                signerIndex: 'asc',
+              },
+            },
             signatureAreas: true,
           },
         },
@@ -87,9 +124,18 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid or expired signing link' }, { status: 404 })
     }
 
+    if (signature.status === 'deleted') {
+      return NextResponse.json(
+        { error: 'This signature request has been deleted' },
+        { status: 410 }
+      )
+    }
+
     if (signature.status === 'signed') {
       return NextResponse.json({ error: 'Document has already been signed' }, { status: 400 })
     }
+
+    // No need to check signing order - all signers can sign in parallel
 
     // Create signed PDF
     const originalFilePath = join(
@@ -98,8 +144,10 @@ export async function POST(
       signature.document.fileUrl.replace('/uploads/', '')
     )
 
-    // Get signature areas
-    const signatureAreas = signature.document.signatureAreas
+    // Get signature areas for this signer (including areas for all signers)
+    const signatureAreas = signature.document.signatureAreas.filter(
+      (area) => area.signerIndex === null || area.signerIndex === signature.signerIndex
+    )
 
     const signedDocumentUrl = await createSignedDocument(
       originalFilePath,
@@ -142,29 +190,77 @@ export async function POST(
       },
     })
 
-    // Check if all signatures are complete
-    const allSignatures = await prisma.signature.findMany({
-      where: { documentId: signature.documentId },
+    // Track signature usage for billing
+    const billingResult = await trackSignatureUsage(
+      signature.document.ownerId,
+      signature.documentId,
+      signature.id
+    )
+
+    if (!billingResult.success) {
+      // If billing fails, we should still allow the signature but log the error
+      console.error('Billing tracking failed:', billingResult.message)
+    }
+
+    // Check if all signatures are complete for this specific request
+    const updatedSignatures = await prisma.signature.findMany({
+      where: {
+        documentId: signature.documentId,
+        requestId: signature.requestId, // Only check signatures from the same request
+      },
+      orderBy: {
+        signerIndex: 'asc',
+      },
     })
 
-    const allSigned = allSignatures.every((sig) => sig.status === 'signed')
+    const allSigned = updatedSignatures.every((sig) => sig.status === 'signed')
+
+    // No need to notify next signer - all signers receive emails simultaneously
 
     if (allSigned) {
-      // Update document status to completed
+      // Create final merged document with all signatures
+      const originalFilePath = join(
+        process.cwd(),
+        'uploads',
+        signature.document.fileUrl.replace('/uploads/', '')
+      )
+
+      // Prepare signature data for merging
+      const signaturesForMerging = updatedSignatures.map((sig) => ({
+        signerName: sig.signerName || 'Signer',
+        signerDate: sig.signedAt
+          ? new Date(sig.signedAt).toLocaleDateString()
+          : new Date().toLocaleDateString(),
+        signatureData: sig.signatureData || '{}',
+        signerIndex: sig.signerIndex,
+      }))
+
+      // Create the final merged document
+      const finalDocumentUrl = await createFinalMergedDocument(
+        originalFilePath,
+        signature.documentId,
+        signaturesForMerging,
+        signature.document.signatureAreas.map((area) => ({
+          ...area,
+          label: area.label || undefined,
+        }))
+      )
+
+      // Update document status to completed and store the final document URL
       await prisma.document.update({
         where: { id: signature.documentId },
-        data: { status: 'completed' },
+        data: {
+          status: 'completed',
+          finalDocumentUrl: finalDocumentUrl,
+        },
       })
 
       // Send completion emails to all parties
       const document = signature.document
       const completionPromises = []
 
-      // Get the signed document URL from the most recent signature
-      const signedSignature = allSignatures.find((sig) => sig.signedDocumentUrl)
-      let signedDocumentUrl =
-        signedSignature?.signedDocumentUrl ||
-        `${process.env.NEXTAUTH_URL}/api/documents/${document.id}/download`
+      // Use the final merged document URL
+      let signedDocumentUrl = finalDocumentUrl
 
       // Convert relative path to full URL if needed
       if (signedDocumentUrl.startsWith('/uploads/')) {
@@ -184,7 +280,7 @@ export async function POST(
       }
 
       // Email to all signers
-      for (const sig of allSignatures) {
+      for (const sig of updatedSignatures) {
         if (sig.signerEmail && sig.signerEmail !== document.owner.email) {
           completionPromises.push(
             sendCompletionEmail({
