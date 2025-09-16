@@ -42,7 +42,10 @@ Create a `.env` file in the root directory:
 DATABASE_URL="file:./dev.db"
 
 # For production (PostgreSQL - Vercel Postgres)
-# DATABASE_URL="postgresql://username:password@host:port/database?schema=public"
+# Vercel automatically provides these environment variables:
+# DATABASE_PRISMA_DATABASE_URL="postgresql://username:password@host:port/database?schema=public&pgbouncer=true&connect_timeout=15"
+# DATABASE_DATABASE_URL="postgresql://username:password@host:port/database?schema=public"
+# DATABASE_POSTGRES_URL="postgresql://username:password@host:port/database?schema=public"
 
 # NextAuth.js
 NEXTAUTH_URL="http://localhost:3000"
@@ -196,9 +199,11 @@ ASSET_BASE_URL=https://cdn.example.com
 3. **Set up Vercel Postgres:**
    - In your Vercel dashboard, go to the Storage tab
    - Create a new Postgres database
-   - Copy the connection string (it will look like: `postgresql://username:password@host:port/database?schema=public`)
-4. **Add environment variables in Vercel dashboard:**
-   - `DATABASE_URL`: Your Vercel Postgres connection string
+   - Vercel will automatically provide these environment variables:
+     - `DATABASE_PRISMA_DATABASE_URL` (optimized for Prisma)
+     - `DATABASE_DATABASE_URL` (direct connection)
+     - `DATABASE_POSTGRES_URL` (standard PostgreSQL)
+4. **Add other required environment variables in Vercel dashboard:**
    - `NEXTAUTH_URL`: Your production domain
    - `NEXTAUTH_SECRET`: A secure random string
    - All other required environment variables
