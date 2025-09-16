@@ -39,7 +39,7 @@ Create a `.env` file in the root directory:
 ```env
 # Database
 # For development (SQLite)
-DATABASE_URL="file:./dev.db"
+DATABASE_DATABASE_URL="file:./dev.db"
 
 # For production (PostgreSQL - Vercel Postgres)
 # Vercel automatically provides these environment variables:
@@ -201,7 +201,7 @@ ASSET_BASE_URL=https://cdn.example.com
    - Create a new Postgres database
    - Vercel will automatically provide these environment variables:
      - `DATABASE_PRISMA_DATABASE_URL` (optimized for Prisma)
-     - `DATABASE_DATABASE_URL` (direct connection)
+     - `DATABASE_DATABASE_URL` (direct connection) ← **This is what your app uses**
      - `DATABASE_POSTGRES_URL` (standard PostgreSQL)
 4. **Add other required environment variables in Vercel dashboard:**
    - `NEXTAUTH_URL`: Your production domain
