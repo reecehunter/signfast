@@ -10,13 +10,21 @@ export function cn(...inputs: ClassValue[]) {
  * This ensures URLs are constructed correctly in all environments
  */
 export function getBaseUrl(): string {
+  console.log('🔍 DEBUG getBaseUrl():')
+  console.log('  - NODE_ENV:', process.env.NODE_ENV)
+  console.log('  - NEXTAUTH_URL:', process.env.NEXTAUTH_URL)
+  console.log('  - NEXTAUTH_URL type:', typeof process.env.NEXTAUTH_URL)
+  console.log('  - NEXTAUTH_URL length:', process.env.NEXTAUTH_URL?.length)
+
   // Check if NEXTAUTH_URL is set and valid
   if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL !== 'undefined') {
+    console.log('  - Using NEXTAUTH_URL:', process.env.NEXTAUTH_URL)
     return process.env.NEXTAUTH_URL
   }
 
   // Fallback for development
   if (process.env.NODE_ENV === 'development') {
+    console.log('  - Using development fallback: http://localhost:3000')
     return 'http://localhost:3000'
   }
 
@@ -24,6 +32,7 @@ export function getBaseUrl(): string {
   // This is a fallback that should not be relied upon
   console.warn('⚠️ NEXTAUTH_URL is not set in production environment')
   console.warn('⚠️ Please set NEXTAUTH_URL environment variable to your production domain')
+  console.log('  - Using production fallback: https://your-domain.com')
 
   // Return a placeholder that will help identify the issue
   return 'https://your-domain.com'
