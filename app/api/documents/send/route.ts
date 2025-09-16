@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
         const signingUrl = constructAppUrl(`/sign/${signature.token}`)
         console.log('🔍 DEBUG: NEXTAUTH_URL =', process.env.NEXTAUTH_URL)
         console.log('🔍 DEBUG: Constructed signing URL =', signingUrl)
-        
+
         return sendSigningEmail({
           to: signature.signerEmail,
           signerName: signature.signerName || 'Signer',
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
           console.error(`Email sending failed for ${signature.signerEmail}:`, emailError)
           // Don't fail the request if individual emails fail
         })
-      )
+      })
 
     // Send all emails (don't fail if email sending fails)
     try {
