@@ -37,15 +37,12 @@ npm install
 Create a `.env` file in the root directory:
 
 ```env
-# Database
-# For development (SQLite)
-DATABASE_DATABASE_URL="file:./dev.db"
+# Database (PostgreSQL for both development and production)
+# For development - use a local PostgreSQL database or a cloud database
+DATABASE_DATABASE_URL="postgresql://username:password@localhost:5432/docusign_dev"
 
-# For production (PostgreSQL - Vercel Postgres)
-# Vercel automatically provides these environment variables:
-# DATABASE_PRISMA_DATABASE_URL="postgresql://username:password@host:port/database?schema=public&pgbouncer=true&connect_timeout=15"
+# For production (Vercel Postgres) - Vercel automatically provides:
 # DATABASE_DATABASE_URL="postgresql://username:password@host:port/database?schema=public"
-# DATABASE_POSTGRES_URL="postgresql://username:password@host:port/database?schema=public"
 
 # NextAuth.js
 NEXTAUTH_URL="http://localhost:3000"
@@ -199,10 +196,7 @@ ASSET_BASE_URL=https://cdn.example.com
 3. **Set up Vercel Postgres:**
    - In your Vercel dashboard, go to the Storage tab
    - Create a new Postgres database
-   - Vercel will automatically provide these environment variables:
-     - `DATABASE_PRISMA_DATABASE_URL` (optimized for Prisma)
-     - `DATABASE_DATABASE_URL` (direct connection) ← **This is what your app uses**
-     - `DATABASE_POSTGRES_URL` (standard PostgreSQL)
+   - Vercel will automatically provide the `DATABASE_DATABASE_URL` environment variable
 4. **Add other required environment variables in Vercel dashboard:**
    - `NEXTAUTH_URL`: Your production domain
    - `NEXTAUTH_SECRET`: A secure random string
@@ -210,6 +204,8 @@ ASSET_BASE_URL=https://cdn.example.com
 5. **Deploy and run migrations:**
    ```bash
    # After deployment, run this to set up the database schema
+   npm run db:setup
+   # Or manually:
    npx prisma db push
    ```
 
