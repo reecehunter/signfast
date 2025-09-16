@@ -1,4 +1,5 @@
 import Stripe from 'stripe'
+import { constructAppUrl } from './utils'
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not set')
@@ -145,8 +146,10 @@ export async function createCheckoutSession(
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXTAUTH_URL}/dashboard/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${process.env.NEXTAUTH_URL}/dashboard/billing?canceled=true`,
+      success_url: constructAppUrl(
+        '/dashboard/billing?session_id={CHECKOUT_SESSION_ID}&success=true'
+      ),
+      cancel_url: constructAppUrl('/dashboard/billing?canceled=true'),
       metadata: {
         userId,
         planType,

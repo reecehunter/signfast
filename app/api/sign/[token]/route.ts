@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 import { sendCompletionEmail } from '@/lib/email'
 import { createSignedDocument, createFinalMergedDocument } from '@/lib/pdf-utils'
 import { trackSignatureUsage } from '@/lib/billing'
+import { constructAppUrl } from '@/lib/utils'
 
 const prisma = new PrismaClient()
 
@@ -253,7 +254,10 @@ export async function POST(
       // Extract filename from S3 URL to construct local API endpoint
       const s3UrlParts = finalDocumentUrl.split('/')
       const filename = s3UrlParts[s3UrlParts.length - 1]
-      const signedDocumentUrl = `${process.env.NEXTAUTH_URL}/api/signed-documents/${filename}`
+      const signedDocumentUrl = constructAppUrl(`/api/signed-documents/${filename}`)
+
+      console.log('🔍 DEBUG: NEXTAUTH_URL =', process.env.NEXTAUTH_URL)
+      console.log('🔍 DEBUG: Constructed completion URL =', signedDocumentUrl)
 
       // Email to document owner
       if (document.owner.email) {

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { PrismaClient } from '@prisma/client'
 import { sendSigningEmail } from '@/lib/email'
 import { createSignedDocument } from '@/lib/pdf-utils'
+import { constructAppUrl } from '@/lib/utils'
 
 const prisma = new PrismaClient()
 
@@ -143,12 +144,16 @@ export async function POST(request: NextRequest) {
         }
         return true
       })
-      .map((signature) =>
-        sendSigningEmail({
+      .map((signature) => {
+        const signingUrl = constructAppUrl(`/sign/${signature.token}`)
+        console.log('🔍 DEBUG: NEXTAUTH_URL =', process.env.NEXTAUTH_URL)
+        console.log('🔍 DEBUG: Constructed signing URL =', signingUrl)
+        
+        return sendSigningEmail({
           to: signature.signerEmail,
           signerName: signature.signerName || 'Signer',
           documentTitle: document.title,
-          signingUrl: `${process.env.NEXTAUTH_URL}/sign/${signature.token}`,
+          signingUrl: signingUrl,
         }).catch((emailError) => {
           console.error(`Email sending failed for ${signature.signerEmail}:`, emailError)
           // Don't fail the request if individual emails fail
