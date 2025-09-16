@@ -38,7 +38,11 @@ Create a `.env` file in the root directory:
 
 ```env
 # Database
+# For development (SQLite)
 DATABASE_URL="file:./dev.db"
+
+# For production (PostgreSQL - Vercel Postgres)
+# DATABASE_URL="postgresql://username:password@host:port/database?schema=public"
 
 # NextAuth.js
 NEXTAUTH_URL="http://localhost:3000"
@@ -49,6 +53,11 @@ EMAIL_HOST="smtp.gmail.com"
 EMAIL_PORT="587"
 EMAIL_USER="your-email@gmail.com"
 EMAIL_PASS="your-app-password"
+
+# Stripe Configuration
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
 
 # Optional: AWS S3 Configuration
 AWS_ACCESS_KEY_ID="your-aws-access-key"
@@ -184,8 +193,20 @@ ASSET_BASE_URL=https://cdn.example.com
 
 1. Push your code to GitHub
 2. Connect your repository to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
+3. **Set up Vercel Postgres:**
+   - In your Vercel dashboard, go to the Storage tab
+   - Create a new Postgres database
+   - Copy the connection string (it will look like: `postgresql://username:password@host:port/database?schema=public`)
+4. **Add environment variables in Vercel dashboard:**
+   - `DATABASE_URL`: Your Vercel Postgres connection string
+   - `NEXTAUTH_URL`: Your production domain
+   - `NEXTAUTH_SECRET`: A secure random string
+   - All other required environment variables
+5. **Deploy and run migrations:**
+   ```bash
+   # After deployment, run this to set up the database schema
+   npx prisma db push
+   ```
 
 ### Other Platforms
 
