@@ -1,6 +1,7 @@
 import { PDFDocument, rgb } from 'pdf-lib'
 import { readFile, writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
+import { tmpdir } from 'os'
 import { uploadToS3, downloadFromS3, extractS3KeyFromUrl } from '@/lib/s3'
 
 export async function addSignatureToPDF(
@@ -230,9 +231,8 @@ export async function createSignedDocument(
   }[],
   areaData?: { [areaId: string]: { type: string; data: string } }
 ): Promise<string> {
-  // Ensure tmp directory exists
-  const tmpDir = join(process.cwd(), 'tmp')
-  await mkdir(tmpDir, { recursive: true })
+  // Use system temp directory (works in serverless environments like Vercel)
+  const tmpDir = tmpdir()
 
   // Generate unique filename for signed document
   const timestamp = Date.now()
@@ -306,9 +306,8 @@ export async function createFinalMergedDocument(
     signerIndex?: number | null
   }>
 ): Promise<string> {
-  // Ensure tmp directory exists
-  const tmpDir = join(process.cwd(), 'tmp')
-  await mkdir(tmpDir, { recursive: true })
+  // Use system temp directory (works in serverless environments like Vercel)
+  const tmpDir = tmpdir()
 
   // Generate unique filename for final merged document
   const timestamp = Date.now()
