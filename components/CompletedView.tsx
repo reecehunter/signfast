@@ -78,12 +78,8 @@ export function CompletedView({
     return signerName || signerEmail
   }
 
-  // Filter documents that have been completed (all signatures are signed)
-  const completedDocuments = documents.filter(
-    (doc) =>
-      doc.signatures.length > 0 &&
-      doc.signatures.every((signature) => signature.status === 'signed')
-  )
+  // Filter documents that have been completed (document status is 'completed')
+  const completedDocuments = documents.filter((doc) => doc.status === 'completed')
 
   // Group completed signatures by requestId
   const requestGroups = new Map<
