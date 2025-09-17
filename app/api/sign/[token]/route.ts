@@ -3,7 +3,6 @@ import { PrismaClient } from '@prisma/client'
 import { sendCompletionEmail } from '@/lib/email'
 import { createSignedDocument, createFinalMergedDocument } from '@/lib/pdf-utils'
 import { trackSignatureUsage } from '@/lib/billing'
-import { constructAppUrl } from '@/lib/utils'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { s3 } from '@/lib/s3'
 

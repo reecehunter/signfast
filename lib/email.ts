@@ -87,7 +87,17 @@ export async function sendCompletionEmail({
   }
 
   try {
-    const emailData: any = {
+    const emailData: {
+      from: string
+      to: string[]
+      subject: string
+      html: string
+      attachments?: Array<{
+        filename: string
+        content: Buffer
+        contentType: string
+      }>
+    } = {
       from: 'SignFast <requests@signfa.st>',
       to: [to],
       subject: `Document Signed: ${documentTitle}`,

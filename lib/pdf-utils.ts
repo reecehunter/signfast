@@ -1,5 +1,5 @@
 import { PDFDocument, rgb } from 'pdf-lib'
-import { readFile, writeFile, mkdir, unlink } from 'fs/promises'
+import { readFile, writeFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { uploadToS3, downloadFromS3, extractS3KeyFromUrl } from '@/lib/s3'

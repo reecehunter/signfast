@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 // @ts-expect-error - NextAuth v4 type definitions issue
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
