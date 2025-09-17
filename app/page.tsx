@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function Home() {
   const { status } = useSession()
@@ -16,12 +17,12 @@ export default function Home() {
     }
   }, [status, router])
 
-  // Show loading spinner while determining authentication status
+  // Show loading skeleton while determining authentication status
   return (
-    <div className='min-h-screen flex items-center justify-center'>
-      <div className='text-center'>
-        <div className='animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900'></div>
-        <p className='mt-4 text-gray-600'>Loading...</p>
+    <div className='min-h-screen flex items-center justify-center bg-gray-50'>
+      <div className='text-center space-y-4'>
+        <Skeleton className='h-32 w-32 rounded-full mx-auto' />
+        <Skeleton className='h-4 w-24 mx-auto' />
       </div>
     </div>
   )

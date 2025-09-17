@@ -4,6 +4,8 @@ import { sendCompletionEmail } from '@/lib/email'
 import { createSignedDocument, createFinalMergedDocument } from '@/lib/pdf-utils'
 import { trackSignatureUsage } from '@/lib/billing'
 import { constructAppUrl } from '@/lib/utils'
+import { GetObjectCommand } from '@aws-sdk/client-s3'
+import { s3 } from '@/lib/s3'
 
 const prisma = new PrismaClient()
 
@@ -247,17 +249,38 @@ export async function POST(
         },
       })
 
-      // Send completion emails to all parties
+      // Download the final document for email attachment
+      let documentBuffer: Buffer | undefined
+      let documentFileName: string | undefined
+
+      try {
+        // Extract S3 key from the final document URL
+        const s3KeyMatch = finalDocumentUrl.match(/s3\.[^\/]+\.amazonaws\.com\/[^\/]+\/(.+)/)
+        if (s3KeyMatch) {
+          const s3Key = s3KeyMatch[1]
+          const command = new GetObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET as string,
+            Key: s3Key,
+          })
+          const result = await s3.send(command)
+          const bytes = await result.Body?.transformToByteArray()
+
+          if (bytes) {
+            documentBuffer = Buffer.from(bytes)
+            documentFileName = `signed-${signature.document.title.replace(
+              /[^a-zA-Z0-9]/g,
+              '_'
+            )}.pdf`
+          }
+        }
+      } catch (error) {
+        console.error('Error downloading document for email attachment:', error)
+        // Continue without attachment if download fails
+      }
+
+      // Send completion emails to all parties with PDF attachment
       const document = signature.document
       const completionPromises = []
-
-      // Extract filename from S3 URL to construct local API endpoint
-      const s3UrlParts = finalDocumentUrl.split('/')
-      const filename = s3UrlParts[s3UrlParts.length - 1]
-      const signedDocumentUrl = constructAppUrl(`/api/signed-documents/${filename}`)
-
-      console.log('🔍 DEBUG: NEXTAUTH_URL =', process.env.NEXTAUTH_URL)
-      console.log('🔍 DEBUG: Constructed completion URL =', signedDocumentUrl)
 
       // Email to document owner
       if (document.owner.email) {
@@ -266,7 +289,8 @@ export async function POST(
             to: document.owner.email,
             recipientName: document.owner.name || 'Document Owner',
             documentTitle: document.title,
-            documentUrl: signedDocumentUrl,
+            attachmentBuffer: documentBuffer,
+            attachmentFileName: documentFileName,
           })
         )
       }
@@ -279,7 +303,8 @@ export async function POST(
               to: sig.signerEmail,
               recipientName: sig.signerName || 'Signer',
               documentTitle: document.title,
-              documentUrl: signedDocumentUrl,
+              attachmentBuffer: documentBuffer,
+              attachmentFileName: documentFileName,
             })
           )
         }

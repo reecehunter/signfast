@@ -67,7 +67,9 @@ interface CompletionEmailData {
   to: string
   recipientName: string
   documentTitle: string
-  documentUrl: string
+  documentUrl?: string // Make optional since we'll use attachment instead
+  attachmentBuffer?: Buffer // Add attachment support
+  attachmentFileName?: string
 }
 
 export async function sendCompletionEmail({
@@ -75,15 +77,17 @@ export async function sendCompletionEmail({
   recipientName,
   documentTitle,
   documentUrl,
+  attachmentBuffer,
+  attachmentFileName,
 }: CompletionEmailData) {
   if (!process.env.RESEND_API_KEY) {
     console.log('Resend API key not configured. Skipping completion email.')
-    console.log(`Document download URL for ${recipientName}: ${documentUrl}`)
+    console.log(`Document completion notification for ${recipientName}`)
     return Promise.resolve()
   }
 
   try {
-    const { data, error } = await resend.emails.send({
+    const emailData: any = {
       from: 'SignFast <requests@signfa.st>',
       to: [to],
       subject: `Document Signed: ${documentTitle}`,
@@ -91,8 +95,12 @@ export async function sendCompletionEmail({
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #28a745;">Document Successfully Signed</h2>
           <p>Hello ${recipientName},</p>
-          <p>The document <strong>${documentTitle}</strong> has been successfully signed.</p>
-          <p>You can download the signed document using the link below:</p>
+          <p>The document <strong>${documentTitle}</strong> has been successfully signed by all parties.</p>
+          <p>The completed document is attached to this email for your records.</p>
+          ${
+            documentUrl
+              ? `
+          <p>You can also download the signed document using the link below:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${documentUrl}" 
                style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
@@ -103,13 +111,29 @@ export async function sendCompletionEmail({
             If the button doesn't work, you can copy and paste this link into your browser:<br>
             <a href="${documentUrl}">${documentUrl}</a>
           </p>
+          `
+              : ''
+          }
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
           <p style="color: #999; font-size: 12px;">
             This is an automated message. Please do not reply to this email.
           </p>
         </div>
       `,
-    })
+    }
+
+    // Add attachment if provided
+    if (attachmentBuffer && attachmentFileName) {
+      emailData.attachments = [
+        {
+          filename: attachmentFileName,
+          content: attachmentBuffer,
+          contentType: 'application/pdf',
+        },
+      ]
+    }
+
+    const { data, error } = await resend.emails.send(emailData)
 
     if (error) {
       console.error('❌ Error sending completion email:', error)

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { Sidebar } from '@/components/Sidebar'
 import { EditDocumentDialog } from '@/components/EditDocumentDialog'
+import { PageLoadingSkeleton } from '@/components/LoadingSkeletons'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Document {
   id: string
@@ -84,14 +86,7 @@ export default function EditDocumentPage() {
   }
 
   if (status === 'loading') {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900'></div>
-          <p className='mt-4 text-gray-600'>Loading...</p>
-        </div>
-      </div>
-    )
+    return <PageLoadingSkeleton />
   }
 
   if (!session) {
@@ -108,11 +103,11 @@ export default function EditDocumentPage() {
         />
         <main className='flex-1 overflow-auto'>
           <div className='p-6'>
-            <div className='flex items-center justify-center py-12'>
-              <div className='text-center'>
-                <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto'></div>
-                <p className='mt-2 text-gray-600'>Loading document...</p>
+            <div className='space-y-6'>
+              <div className='flex items-center space-x-4'>
+                <Skeleton className='h-10 w-32' />
               </div>
+              <Skeleton className='h-96 w-full' />
             </div>
           </div>
         </main>

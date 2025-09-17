@@ -136,15 +136,14 @@ export async function createCheckoutSession(
   planType: 'unlimited' | 'metered'
 ) {
   try {
+    // For metered billing, don't include quantity in line_items
+    const lineItems =
+      planType === 'metered' ? [{ price: priceId }] : [{ price: priceId, quantity: 1 }]
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       mode: 'subscription',
       success_url: constructAppUrl(
         '/dashboard/billing?session_id={CHECKOUT_SESSION_ID}&success=true'

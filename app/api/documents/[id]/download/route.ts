@@ -1,21 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
+// @ts-expect-error - NextAuth v4 type definitions issue
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 import { PrismaClient } from '@prisma/client'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { s3 } from '@/lib/s3'
-const bucket = process.env.AWS_S3_BUCKET as string
 
+const bucket = process.env.AWS_S3_BUCKET as string
 const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
 
-    const document = await prisma.document.findUnique({
-      where: { id },
+    // Get session for authentication
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check if user is the document owner
+    const document = await prisma.document.findFirst({
+      where: {
+        id,
+        ownerId: session.user.id, // Only allow document owner to download
+      },
     })
 
     if (!document) {
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Document not found or access denied' }, { status: 404 })
     }
 
     // If fileUrl is an absolute URL (S3), extract the key and fetch from S3

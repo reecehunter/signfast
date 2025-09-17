@@ -6,14 +6,20 @@ const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Webhook received at:', new Date().toISOString())
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')
 
+    console.log('Webhook signature present:', !!signature)
+    console.log('Webhook body length:', body.length)
+
     if (!signature) {
+      console.log('No signature provided in webhook')
       return NextResponse.json({ error: 'No signature provided' }, { status: 400 })
     }
 
     const event = constructWebhookEvent(body, signature)
+    console.log('Webhook event type:', event.type)
 
     switch (event.type) {
       case 'customer.subscription.updated':
@@ -79,8 +85,8 @@ async function handleSubscriptionUpdated(subscription: {
       },
     })
 
-    // If subscription is now active and was previously incomplete, update plan type
-    if (subscription.status === 'active' && user.subscriptionStatus === 'incomplete') {
+    // If subscription is now active, ensure plan type is set correctly
+    if (subscription.status === 'active') {
       const priceId = subscription.items?.data?.[0]?.price?.id
       const planType = priceId === process.env.STRIPE_UNLIMITED_PRICE_ID ? 'unlimited' : 'metered'
 
@@ -204,6 +210,7 @@ async function handleSubscriptionCreated(subscription: {
   id?: string
   customer?: string | null | { id: string }
   status?: string
+  items?: { data?: { price?: { id?: string } }[] }
 }) {
   try {
     const customerId =
@@ -222,16 +229,23 @@ async function handleSubscriptionCreated(subscription: {
       return
     }
 
-    // Update user with subscription ID
+    // Determine plan type based on price ID
+    const priceId = subscription.items?.data?.[0]?.price?.id
+    const planType = priceId === process.env.STRIPE_UNLIMITED_PRICE_ID ? 'unlimited' : 'metered'
+
+    // Update user with subscription ID, status, and plan type
     await prisma.user.update({
       where: { id: user.id },
       data: {
         subscriptionId: subscription.id,
         subscriptionStatus: subscription.status,
+        planType: planType,
       },
     })
 
-    console.log(`Created subscription ${subscription.id} for user ${user.id}`)
+    console.log(
+      `Created subscription ${subscription.id} for user ${user.id} with plan type ${planType}`
+    )
   } catch (error) {
     console.error('Error handling subscription created:', error)
   }

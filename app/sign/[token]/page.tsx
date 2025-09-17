@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { FileText, CheckCircle, AlertCircle } from 'lucide-react'
 import { InteractivePDFSigner } from '@/components/InteractivePDFSigner'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface DocumentData {
   id: string
@@ -163,9 +164,9 @@ export default function SigningPage() {
   if (isLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-gray-50'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900'></div>
-          <p className='mt-4 text-gray-600'>Loading document...</p>
+        <div className='text-center space-y-4'>
+          <Skeleton className='h-32 w-32 rounded-full mx-auto' />
+          <Skeleton className='h-4 w-32 mx-auto' />
         </div>
       </div>
     )

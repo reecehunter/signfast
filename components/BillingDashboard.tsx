@@ -28,10 +28,16 @@ export default function BillingDashboard() {
 
   const fetchUsageStats = async () => {
     try {
+      console.log('Fetching usage stats...')
       const response = await fetch('/api/billing/usage')
+      console.log('Usage stats response status:', response.status)
       if (response.ok) {
         const stats = await response.json()
+        console.log('Usage stats received:', stats)
         setUsageStats(stats)
+      } else {
+        const error = await response.json()
+        console.error('Error response:', error)
       }
     } catch (error) {
       console.error('Error fetching usage stats:', error)
