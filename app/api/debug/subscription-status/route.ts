@@ -4,6 +4,13 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { PrismaClient } from '@prisma/client'
 import { getSubscription } from '@/lib/stripe'
+import Stripe from 'stripe'
+
+// Extended Stripe subscription type that includes snake_case properties
+interface StripeSubscriptionWithSnakeCase extends Stripe.Subscription {
+  current_period_start: number
+  current_period_end: number
+}
 
 const prisma = new PrismaClient()
 
@@ -23,10 +30,11 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    let stripeSubscription = null
+    let stripeSubscription: StripeSubscriptionWithSnakeCase | null = null
     if (user.subscriptionId) {
       try {
-        stripeSubscription = await getSubscription(user.subscriptionId)
+        const subscription = await getSubscription(user.subscriptionId)
+        stripeSubscription = subscription as unknown as StripeSubscriptionWithSnakeCase
       } catch (error) {
         console.error('Error fetching Stripe subscription:', error)
       }
