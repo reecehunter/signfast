@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +22,9 @@ import {
 import { Label } from '@/components/ui/label'
 import { Send, Plus, Clock, FileText, Trash2, AlertTriangle } from 'lucide-react'
 import { SendDocumentDialog } from '@/components/SendDocumentDialog'
+import { BillingRestrictionDialog } from './BillingRestrictionDialog'
+import { checkBillingStatus, BillingStatus } from '@/lib/billing-client'
+import { ContentLoadingSkeleton } from '@/components/LoadingSkeletons'
 
 interface Document {
   id: string
@@ -70,6 +73,34 @@ export function RequestsView({
   const [showSendDialog, setShowSendDialog] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null)
+  const [showBillingRestriction, setShowBillingRestriction] = useState(false)
+  const [billingMessage, setBillingMessage] = useState<string>('')
+  const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null)
+  const [billingLoading, setBillingLoading] = useState(true)
+
+  // Check billing status on component mount
+  useEffect(() => {
+    const loadBillingStatus = async () => {
+      try {
+        const status = await checkBillingStatus()
+        setBillingStatus(status)
+      } catch (error) {
+        console.error('Error loading billing status:', error)
+        // Set a default status that prevents sending requests if we can't check
+        setBillingStatus({
+          canSendRequests: false,
+          freeSignaturesRemaining: 0,
+          planType: 'free',
+          subscriptionStatus: null,
+          message: 'Unable to check billing status. Please try again.',
+        })
+      } finally {
+        setBillingLoading(false)
+      }
+    }
+
+    loadBillingStatus()
+  }, [])
 
   // Helper function to get display name for a signer
   const getSignerDisplayName = (signerEmail: string, signerName?: string) => {
@@ -77,6 +108,23 @@ export function RequestsView({
       return 'You'
     }
     return signerName || signerEmail
+  }
+
+  // Handle new request button click with billing check
+  const handleNewRequestClick = () => {
+    // If billing is still loading, don't do anything
+    if (billingLoading || !billingStatus) {
+      return
+    }
+
+    if (billingStatus.canSendRequests) {
+      setShowNewRequestDialog(true)
+    } else {
+      setBillingMessage(
+        billingStatus.message || 'Unable to send requests. Please check your billing status.'
+      )
+      setShowBillingRestriction(true)
+    }
   }
 
   // Filter documents that have been sent for signature (have signatures)
@@ -186,14 +234,7 @@ export function RequestsView({
   }
 
   if (isLoading) {
-    return (
-      <div className='flex items-center justify-center py-12'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto'></div>
-          <p className='mt-2 text-gray-600'>Loading requests...</p>
-        </div>
-      </div>
-    )
+    return <ContentLoadingSkeleton />
   }
 
   return (
@@ -203,9 +244,13 @@ export function RequestsView({
           <h2 className='text-xl sm:text-2xl font-bold text-gray-900'>Signature Requests</h2>
           <p className='text-gray-600'>Manage outgoing signature requests</p>
         </div>
-        <Button onClick={() => setShowNewRequestDialog(true)} className='w-full sm:w-auto'>
+        <Button
+          onClick={handleNewRequestClick}
+          className='w-full sm:w-auto'
+          disabled={billingLoading}
+        >
           <Plus className='h-4 w-4 mr-2' />
-          New Request
+          {billingLoading ? 'Loading...' : 'New Request'}
         </Button>
       </div>
 
@@ -219,9 +264,9 @@ export function RequestsView({
               <p className='text-gray-500 mb-4'>
                 Documents sent for signature that are pending completion will appear here.
               </p>
-              <Button onClick={() => setShowNewRequestDialog(true)}>
+              <Button onClick={handleNewRequestClick} disabled={billingLoading}>
                 <Plus className='h-4 w-4 mr-2' />
-                Create Request
+                {billingLoading ? 'Loading...' : 'Create Request'}
               </Button>
             </div>
           ) : (
@@ -501,6 +546,12 @@ export function RequestsView({
         onOpenChange={setShowSendDialog}
         document={selectedDocument}
         onDocumentSent={onRefresh}
+      />
+
+      <BillingRestrictionDialog
+        open={showBillingRestriction}
+        onOpenChange={setShowBillingRestriction}
+        message={billingMessage}
       />
     </div>
   )

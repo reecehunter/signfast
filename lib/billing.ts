@@ -10,6 +10,66 @@ export interface BillingResult {
   billed: boolean
 }
 
+export interface CanSendRequestResult {
+  canSend: boolean
+  message: string
+}
+
+export async function canUserSendRequest(userId: string): Promise<CanSendRequestResult> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      return {
+        canSend: false,
+        message: 'User not found',
+      }
+    }
+
+    // Check if user has free signatures remaining
+    if (user.freeSignaturesRemaining > 0) {
+      return {
+        canSend: true,
+        message: 'User has free signatures remaining',
+      }
+    }
+
+    // Check if user has an active subscription
+    if (user.planType === 'unlimited' && user.subscriptionStatus === 'active') {
+      return {
+        canSend: true,
+        message: 'User has unlimited plan with active subscription',
+      }
+    }
+
+    if (
+      user.planType === 'metered' &&
+      user.subscriptionId &&
+      user.subscriptionStatus === 'active'
+    ) {
+      return {
+        canSend: true,
+        message: 'User has metered plan with active subscription',
+      }
+    }
+
+    // User has no free signatures and no active subscription
+    return {
+      canSend: false,
+      message:
+        'No free signatures remaining and no active paid subscription. Please upgrade to a paid plan to continue sending documents.',
+    }
+  } catch (error) {
+    console.error('Error checking if user can send request:', error)
+    return {
+      canSend: false,
+      message: 'Internal server error',
+    }
+  }
+}
+
 export async function trackSignatureUsage(
   userId: string,
   documentId: string,

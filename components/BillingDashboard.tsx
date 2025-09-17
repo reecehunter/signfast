@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { CreditCard, Zap, Infinity, AlertCircle } from 'lucide-react'
+import { BillingLoadingSkeleton } from '@/components/LoadingSkeletons'
 
 interface UsageStats {
   freeSignaturesRemaining: number
@@ -91,12 +92,7 @@ export default function BillingDashboard() {
   }
 
   if (loading) {
-    return (
-      <div className='space-y-6'>
-        <div className='h-32 bg-gray-200 animate-pulse rounded-lg'></div>
-        <div className='h-48 bg-gray-200 animate-pulse rounded-lg'></div>
-      </div>
-    )
+    return <BillingLoadingSkeleton />
   }
 
   if (!usageStats) {

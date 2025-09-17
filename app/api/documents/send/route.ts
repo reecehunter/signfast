@@ -6,6 +6,7 @@ import { PrismaClient } from '@prisma/client'
 import { sendSigningEmail } from '@/lib/email'
 import { createSignedDocument } from '@/lib/pdf-utils'
 import { constructAppUrl } from '@/lib/utils'
+import { canUserSendRequest } from '@/lib/billing'
 
 const prisma = new PrismaClient()
 
@@ -15,6 +16,12 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check if user can send requests (has free signatures or active subscription)
+    const canSendResult = await canUserSendRequest(session.user.id)
+    if (!canSendResult.canSend) {
+      return NextResponse.json({ error: canSendResult.message }, { status: 403 })
     }
 
     const { documentId, signers, selfSignatureData, selfSignerIndex, selfSignerInfo } =

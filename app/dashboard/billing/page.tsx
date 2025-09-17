@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
 import BillingDashboard from '@/components/BillingDashboard'
+import { PageLoadingSkeleton } from '@/components/LoadingSkeletons'
 
 function BillingPageContent() {
   const { data: session, status } = useSession()
@@ -36,14 +37,7 @@ function BillingPageContent() {
   }, [searchParams, router])
 
   if (status === 'loading') {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900'></div>
-          <p className='mt-4 text-gray-600'>Loading...</p>
-        </div>
-      </div>
-    )
+    return <PageLoadingSkeleton />
   }
 
   if (!session) {
@@ -97,16 +91,7 @@ function BillingPageContent() {
 
 export default function BillingPage() {
   return (
-    <Suspense
-      fallback={
-        <div className='min-h-screen flex items-center justify-center'>
-          <div className='text-center'>
-            <div className='animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900'></div>
-            <p className='mt-4 text-gray-600'>Loading...</p>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoadingSkeleton />}>
       <BillingPageContent />
     </Suspense>
   )
